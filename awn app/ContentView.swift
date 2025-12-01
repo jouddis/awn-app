@@ -13,7 +13,7 @@ struct ContentView: View {
             Image(systemName: "pill")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("عون")
         }
         .padding()
     }
