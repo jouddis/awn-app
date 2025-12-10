@@ -52,7 +52,7 @@ class AuthenticationViewModel: ObservableObject {
         errorMessage = nil
         
         // Always sign in as caregiver
-        authService.handleSignInWithApple(authorization: authorization, role: .caregiver) { [weak self] result in
+        authService.handleSignInWithApple(authorization: authorization) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 

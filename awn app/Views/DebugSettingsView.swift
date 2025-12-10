@@ -6,6 +6,7 @@
 //
 //  Debug view to test login flow
 //
+//
 
 import SwiftUI
 
@@ -44,7 +45,8 @@ struct DebugSettingsView: View {
                     if let user = authViewModel.currentUser {
                         LabeledContent("Name", value: user.fullName ?? "Unknown")
                         LabeledContent("Email", value: user.email ?? "No email")
-                        LabeledContent("Role", value: user.role)
+                        // ✅ REMOVED: Role display (only caregivers have accounts)
+                        LabeledContent("Role", value: "Caregiver") // Always caregiver
                         LabeledContent("User ID", value: user.id)
                     } else {
                         Text("Not signed in")
@@ -89,4 +91,3 @@ struct DebugSettingsView: View {
     DebugSettingsView()
         .environmentObject(AuthenticationViewModel())
 }
-

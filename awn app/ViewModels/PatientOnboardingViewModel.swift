@@ -87,13 +87,12 @@ class PatientOnboardingViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // Create patient profile - Let Patient generate its own UUID
+        // Create patient PROFILE (no userId - patient doesn't have an account)
         let patient = Patient(
-            // DON'T pass id - let it generate new UUID
-            userId: currentUser.id,
             name: firstName,
             dateOfBirth: nil,
-            caregiverId: currentUser.id
+            caregiverId: currentUser.id  // Link to caregiver's user ID
+            // watchDeviceID will be set when watch is actually paired
         )
         
         cloudKitManager.savePatient(patient) { [weak self] result in
@@ -102,15 +101,42 @@ class PatientOnboardingViewModel: ObservableObject {
                 
                 switch result {
                 case .success(let savedPatient):
-                    print("✅ Patient created: \(savedPatient.name)")
+                    print("✅ Patient profile created: \(savedPatient.name)")
                     
                     // Update caregiver with linked patient
                     self?.linkPatientToCaregiver(patientID: savedPatient.id, caregiverUserID: currentUser.id)
+                    
+                    // Also update caregiver's relationship
+                    self?.updateCaregiverRelationship(caregiverUserID: currentUser.id)
                     
                 case .failure(let error):
                     self?.errorMessage = "Failed to create patient: \(error.localizedDescription)"
                     print("❌ Error: \(error)")
                 }
+            }
+        }
+    }
+    
+    private func updateCaregiverRelationship(caregiverUserID: String) {
+        cloudKitManager.fetchCaregiver(byUserID: caregiverUserID) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(var caregiver):
+                // Update relationship from onboarding
+                caregiver.relationship = self.displayRelationship
+                
+                self.cloudKitManager.saveCaregiver(caregiver) { saveResult in
+                    switch saveResult {
+                    case .success:
+                        print("✅ Caregiver relationship updated to: \(self.displayRelationship)")
+                    case .failure(let error):
+                        print("⚠️ Failed to update caregiver relationship: \(error)")
+                    }
+                }
+                
+            case .failure(let error):
+                print("⚠️ Failed to fetch caregiver for relationship update: \(error)")
             }
         }
     }
@@ -170,4 +196,3 @@ class PatientOnboardingViewModel: ObservableObject {
         }
     }
 }
-

@@ -51,9 +51,9 @@ class AuthenticationService: ObservableObject {
         }
     }
     
-    // MARK: - Sign In with Apple
+    // MARK: - Sign In with Apple (Caregiver Only)
     
-    func handleSignInWithApple(authorization: ASAuthorization, role: UserRole, completion: @escaping (Result<AppUser, Error>) -> Void) {
+    func handleSignInWithApple(authorization: ASAuthorization, completion: @escaping (Result<AppUser, Error>) -> Void) {
         guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
             completion(.failure(NSError(domain: "AuthenticationService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid credentials"])))
             return
@@ -74,20 +74,18 @@ class AuthenticationService: ObservableObject {
                 completion(.success(existingUser))
                 
             case .failure:
-                // Create new user
+                // Create new user (always caregiver)
                 let newUser = AppUser(
                     appleUserID: appleUserID,
                     email: email,
-                    fullName: fullName.isEmpty ? "User" : fullName,
-                    role: role.rawValue  // Convert enum to String
+                    fullName: fullName.isEmpty ? "Caregiver" : fullName
                 )
                 
-                // Save user with proper method
                 self?.cloudKitManager.saveUser(newUser) { saveResult in
                     switch saveResult {
                     case .success(let savedUser):
-                        // Create corresponding Patient or Caregiver profile
-                        self?.createUserProfile(for: savedUser, role: role) { profileResult in
+                        // Create caregiver profile
+                        self?.createCaregiverProfile(for: savedUser) { profileResult in
                             switch profileResult {
                             case .success:
                                 self?.completeAuthentication(user: savedUser)
@@ -105,37 +103,20 @@ class AuthenticationService: ObservableObject {
         }
     }
     
-    private func createUserProfile(for user: AppUser, role: UserRole, completion: @escaping (Result<Void, Error>) -> Void) {
-        switch role {
-        case .patient:
-            // Create patient profile
-            let patient = Patient(
-                userId: user.id,
-                name: user.fullName ?? "Patient"
-            )
-            cloudKitManager.savePatient(patient) { result in
-                switch result {
-                case .success:
-                    completion(.success(()))
-                case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
-            
-        case .caregiver:
-            // Create caregiver profile
-            let caregiver = Caregiver(
-                userId: user.id,
-                name: user.fullName ?? "Caregiver",
-                relationship: "Family Member" // Default, can be updated later
-            )
-            cloudKitManager.saveCaregiver(caregiver) { result in
-                switch result {
-                case .success:
-                    completion(.success(()))
-                case .failure(let error):
-                    completion(.failure(error))
-                }
+    private func createCaregiverProfile(for user: AppUser, completion: @escaping (Result<Void, Error>) -> Void) {
+        // Create caregiver profile (no patient profile needed)
+        let caregiver = Caregiver(
+            userId: user.id,
+            name: user.fullName ?? "Caregiver",
+            relationship: "Family Member" // Default, updated during patient onboarding
+        )
+        
+        cloudKitManager.saveCaregiver(caregiver) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
     }
@@ -145,10 +126,9 @@ class AuthenticationService: ObservableObject {
             self.currentUser = user
             self.isAuthenticated = true
             
-            // Save to UserDefaults
+            // Save to UserDefaults (removed role field)
             self.userDefaults.set(user.appleUserID, forKey: Constants.UserDefaultsKeys.appleUserID)
             self.userDefaults.set(user.id, forKey: Constants.UserDefaultsKeys.currentUserID)
-            self.userDefaults.set(user.role, forKey: Constants.UserDefaultsKeys.userRole)  // role is already String
             self.userDefaults.set(true, forKey: Constants.UserDefaultsKeys.isAuthenticated)
             
             NotificationCenter.default.post(name: Constants.Notifications.userDidAuthenticate, object: user)
@@ -175,22 +155,12 @@ class AuthenticationService: ObservableObject {
     
     // MARK: - User Profile
     
-    func getCurrentPatient(completion: @escaping (Result<Patient, Error>) -> Void) {
-        guard let user = currentUser, user.role == UserRole.patient.rawValue else {
-            completion(.failure(NSError(domain: "AuthenticationService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Not a patient user"])))
-            return
-        }
-        
-        cloudKitManager.fetchPatient(byID: user.id, completion: completion)
-    }
-    
     func getCurrentCaregiver(completion: @escaping (Result<Caregiver, Error>) -> Void) {
-        guard let user = currentUser, user.role == UserRole.caregiver.rawValue else {
-            completion(.failure(NSError(domain: "AuthenticationService", code: -3, userInfo: [NSLocalizedDescriptionKey: "Not a caregiver user"])))
+        guard let user = currentUser else {
+            completion(.failure(NSError(domain: "AuthenticationService", code: -3, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])))
             return
         }
         
         cloudKitManager.fetchCaregiver(byUserID: user.id, completion: completion)
     }
 }
-

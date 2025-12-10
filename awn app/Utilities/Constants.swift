@@ -27,19 +27,14 @@ struct Constants {
             static let alertEvent = "AlertEvent"
             static let medication = "Medication"
             static let medicationDoseLog = "MedicationDoseLog"
-            static let wanderingStats = "WanderingStats"
-//            static let location = "Location"
-            static let safeZone = "SafeZone"
-
         }
         
         // Field Names
         struct Field {
-            // AppUser
+            // AppUser (removed role field)
             static let appleUserID = "appleUserID"
             static let email = "email"
             static let fullName = "fullName"
-            static let role = "role"
             static let createdAt = "createdAt"
             static let updatedAt = "updatedAt"
             
@@ -49,11 +44,15 @@ struct Constants {
             static let phoneNumber = "phoneNumber"
             static let linkedPatientId = "linkedPatientId"
             
-            // Patient
-            static let userId = "userId"
+            // Patient (removed userId, added watch fields)
             static let name = "name"
             static let dateOfBirth = "dateOfBirth"
             static let caregiverId = "caregiverId"
+            
+            // Patient - Watch Pairing (Family Setup)
+            static let watchDeviceID = "watchDeviceID"
+            static let watchSerialNumber = "watchSerialNumber"
+            static let watchPairedDate = "watchPairedDate"
             
             // Patient - Safe Zone
             static let safeZoneName = "safeZoneName"
@@ -96,14 +95,6 @@ struct Constants {
             static let status = "status"
             static let takenDateTime = "takenDateTime"
             static let confirmedBy = "confirmedBy"
-            
-            // WanderingStats
-            static let date = "date"
-            static let wanderingCount = "wanderingCount"
-            static let accompaniedCount = "accompaniedCount"
-            static let totalExits = "totalExits"
-            static let averageDuration = "averageDuration"
-            static let longestDuration = "longestDuration"
         }
     }
     
@@ -119,21 +110,11 @@ struct Constants {
         static let autoConfirmationDelay: TimeInterval = 300  // 5 minutes
     }
     
-    // MARK: - Invite Links (URL Scheme - No domain needed!)
-    struct InviteLinks {
-        static let scheme = "awn"
-        static let invitePath = "join"
-        
-        static func inviteURL(token: String) -> URL? {
-            return URL(string: "\(scheme)://\(invitePath)/\(token)")
-        }
-    }
-    
-    // MARK: - User Defaults Keys
+    // MARK: - User Defaults Keys (removed role key)
     struct UserDefaultsKeys {
         static let isAuthenticated = "isAuthenticated"
         static let currentUserID = "currentUserID"
-        static let userRole = "userRole"
+        static let userRole = "userRole"  // Kept for backward compatibility
         static let appleUserID = "appleUserID"
         static let currentPatientID = "currentPatientID"
         static let currentCaregiverID = "currentCaregiverID"
@@ -143,7 +124,6 @@ struct Constants {
     struct Notifications {
         static let userDidAuthenticate = Notification.Name("userDidAuthenticate")
         static let userDidLogout = Notification.Name("userDidLogout")
-        static let inviteLinkReceived = Notification.Name("inviteLinkReceived")
         
         // Location
         static let safeZoneUpdated = Notification.Name("safeZoneUpdated")
@@ -166,5 +146,3 @@ struct Constants {
         static let minIntervalDays = 1
     }
 }
-
-

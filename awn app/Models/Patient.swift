@@ -12,10 +12,14 @@ import CloudKit
 
 struct Patient: Identifiable, Codable {
     let id: String
-    let userId: String // Reference to AppUser
     var name: String
     var dateOfBirth: Date?
-    var caregiverId: String? // Reference to Caregiver (1:1)
+    var caregiverId: String // Reference to Caregiver (required)
+    
+    // Watch Pairing (Family Setup)
+    var watchDeviceID: String? // Primary identifier for the paired watch
+    var watchSerialNumber: String? // Backup identifier
+    var watchPairedDate: Date? // When watch was paired via Family Setup
     
     // Single Safe Zone (Geofence)
     var safeZoneName: String?
@@ -32,10 +36,12 @@ struct Patient: Identifiable, Codable {
     // MARK: - Initialization
     
     init(id: String = UUID().uuidString,
-         userId: String,
          name: String,
          dateOfBirth: Date? = nil,
-         caregiverId: String? = nil,
+         caregiverId: String,
+         watchDeviceID: String? = nil,
+         watchSerialNumber: String? = nil,
+         watchPairedDate: Date? = nil,
          safeZoneName: String? = nil,
          safeZoneCenterLat: Double? = nil,
          safeZoneCenterLon: Double? = nil,
@@ -46,10 +52,12 @@ struct Patient: Identifiable, Codable {
          createdAt: Date = Date(),
          updatedAt: Date = Date()) {
         self.id = id
-        self.userId = userId
         self.name = name
         self.dateOfBirth = dateOfBirth
         self.caregiverId = caregiverId
+        self.watchDeviceID = watchDeviceID
+        self.watchSerialNumber = watchSerialNumber
+        self.watchPairedDate = watchPairedDate
         self.safeZoneName = safeZoneName
         self.safeZoneCenterLat = safeZoneCenterLat
         self.safeZoneCenterLon = safeZoneCenterLon
@@ -78,31 +86,37 @@ struct Patient: Identifiable, Codable {
         return radius / 1000.0
     }
     
+    var isWatchPaired: Bool {
+        return watchDeviceID != nil
+    }
+    
     // MARK: - CloudKit Conversion
     
     func toCKRecord() -> CKRecord {
-        // Use patient's ID as the CloudKit record ID
         let recordID = CKRecord.ID(recordName: id)
         let record = CKRecord(recordType: Constants.CloudKit.RecordType.patient, recordID: recordID)
         
-        // Store ID as a field too (for querying)
         record["id"] = id as CKRecordValue
-        
-        let userReference = CKRecord.Reference(
-            recordID: CKRecord.ID(recordName: userId),
-            action: .none  // ← Change from .deleteSelf
-        )
-        record["userReference"] = userReference
-        
         record["name"] = name as CKRecordValue
         
         if let dateOfBirth = dateOfBirth {
             record["dateOfBirth"] = dateOfBirth as CKRecordValue
         }
         
-        // Store caregiverId as STRING, not reference
-        if let caregiverId = caregiverId {
-            record["caregiverId"] = caregiverId as CKRecordValue
+        // Store caregiverId as STRING (not reference to avoid cycles)
+        record["caregiverId"] = caregiverId as CKRecordValue
+        
+        // Watch pairing fields
+        if let watchDeviceID = watchDeviceID {
+            record["watchDeviceID"] = watchDeviceID as CKRecordValue
+        }
+        
+        if let watchSerialNumber = watchSerialNumber {
+            record["watchSerialNumber"] = watchSerialNumber as CKRecordValue
+        }
+        
+        if let watchPairedDate = watchPairedDate {
+            record["watchPairedDate"] = watchPairedDate as CKRecordValue
         }
         
         // Safe zone fields
@@ -140,20 +154,22 @@ struct Patient: Identifiable, Codable {
     
     init?(from record: CKRecord) {
         guard let id = record["id"] as? String,
-              let userRef = record["userReference"] as? CKRecord.Reference,
               let name = record["name"] as? String,
+              let caregiverId = record["caregiverId"] as? String,
               let createdAt = record["createdAt"] as? Date,
               let updatedAt = record["updatedAt"] as? Date else {
             return nil
         }
         
         self.id = id
-        self.userId = userRef.recordID.recordName
         self.name = name
         self.dateOfBirth = record["dateOfBirth"] as? Date
+        self.caregiverId = caregiverId
         
-        // Read caregiverId as STRING
-        self.caregiverId = record["caregiverId"] as? String
+        // Watch pairing fields
+        self.watchDeviceID = record["watchDeviceID"] as? String
+        self.watchSerialNumber = record["watchSerialNumber"] as? String
+        self.watchPairedDate = record["watchPairedDate"] as? Date
         
         // Safe zone fields
         self.safeZoneName = record["safeZoneName"] as? String
@@ -172,6 +188,20 @@ struct Patient: Identifiable, Codable {
     }
     
     // MARK: - Helper Methods
+    
+    mutating func pairWatch(deviceID: String, serialNumber: String? = nil) {
+        self.watchDeviceID = deviceID
+        self.watchSerialNumber = serialNumber
+        self.watchPairedDate = Date()
+        self.updatedAt = Date()
+    }
+    
+    mutating func unpairWatch() {
+        self.watchDeviceID = nil
+        self.watchSerialNumber = nil
+        self.watchPairedDate = nil
+        self.updatedAt = Date()
+    }
     
     mutating func setSafeZone(name: String, centerLat: Double, centerLon: Double, radius: Double) {
         self.safeZoneName = name
@@ -215,4 +245,3 @@ struct Patient: Identifiable, Codable {
         self.updatedAt = Date()
     }
 }
-

@@ -15,7 +15,7 @@ struct AppUser: Identifiable, Codable {
     let appleUserID: String
     var email: String?
     var fullName: String?
-    var role: String // "patient" or "caregiver"
+    // REMOVED: var role: String - No longer needed since only caregivers have accounts
     var createdAt: Date
     var updatedAt: Date
     
@@ -25,14 +25,12 @@ struct AppUser: Identifiable, Codable {
          appleUserID: String,
          email: String? = nil,
          fullName: String? = nil,
-         role: String,
          createdAt: Date = Date(),
          updatedAt: Date = Date()) {
         self.id = id
         self.appleUserID = appleUserID
         self.email = email
         self.fullName = fullName
-        self.role = role
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -53,7 +51,6 @@ struct AppUser: Identifiable, Codable {
             record["fullName"] = fullName as CKRecordValue
         }
         
-        record["role"] = role as CKRecordValue
         record["createdAt"] = createdAt as CKRecordValue
         record["updatedAt"] = updatedAt as CKRecordValue
         
@@ -63,7 +60,6 @@ struct AppUser: Identifiable, Codable {
     init?(from record: CKRecord) {
         guard let id = record["id"] as? String,
               let appleUserID = record["appleUserID"] as? String,
-              let role = record["role"] as? String,
               let createdAt = record["createdAt"] as? Date,
               let updatedAt = record["updatedAt"] as? Date else {
             return nil
@@ -73,10 +69,7 @@ struct AppUser: Identifiable, Codable {
         self.appleUserID = appleUserID
         self.email = record["email"] as? String
         self.fullName = record["fullName"] as? String
-        self.role = role
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
 }
-
-
