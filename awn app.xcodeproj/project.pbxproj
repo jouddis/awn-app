@@ -16,6 +16,11 @@
 			path = "awn app";
 			sourceTree = "<group>";
 		};
+		886D7FDC2EEAAA69008DE550 /* Views (Maram) */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Views (Maram)";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,6 +39,7 @@
 			children = (
 				386C663B2EDD8AB700A67AB9 /* awn app */,
 				386C663A2EDD8AB700A67AB9 /* Products */,
+				886D7FDC2EEAAA69008DE550 /* Views (Maram) */,
 			);
 			sourceTree = "<group>";
 		};
@@ -62,6 +68,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				386C663B2EDD8AB700A67AB9 /* awn app */,
+				886D7FDC2EEAAA69008DE550 /* Views (Maram) */,
 			);
 			name = "awn app";
 			packageProductDependencies = (
