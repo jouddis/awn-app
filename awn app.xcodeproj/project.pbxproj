@@ -6,14 +6,65 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		38D598572EEAB0440016B72C /* AwnWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 38D5984D2EEAB0430016B72C /* AwnWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		38D598552EEAB0440016B72C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 386C66312EDD8AB700A67AB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 38D5984C2EEAB0430016B72C;
+			remoteInfo = "AwnWatch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		38D598582EEAB0440016B72C /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				38D598572EEAB0440016B72C /* AwnWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		386C66392EDD8AB700A67AB9 /* awn app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "awn app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		38D5984D2EEAB0430016B72C /* AwnWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AwnWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		38D5986D2EEAB4CA0016B72C /* Exceptions for "awn app" folder in "AwnWatch Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/AlertEvent.swift,
+				Models/AppUser.swift,
+				Models/Caregiver.swift,
+				Models/Patient.swift,
+				Utilities/Constants.swift,
+			);
+			target = 38D5984C2EEAB0430016B72C /* AwnWatch Watch App */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		386C663B2EDD8AB700A67AB9 /* awn app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				38D5986D2EEAB4CA0016B72C /* Exceptions for "awn app" folder in "AwnWatch Watch App" target */,
+			);
 			path = "awn app";
+			sourceTree = "<group>";
+		};
+		38D5984E2EEAB0430016B72C /* AwnWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "AwnWatch Watch App";
 			sourceTree = "<group>";
 		};
 		886D7FDC2EEAAA69008DE550 /* Views (Maram) */ = {
@@ -31,6 +82,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		38D5984A2EEAB0430016B72C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -38,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				386C663B2EDD8AB700A67AB9 /* awn app */,
+				38D5984E2EEAB0430016B72C /* AwnWatch Watch App */,
 				386C663A2EDD8AB700A67AB9 /* Products */,
 				886D7FDC2EEAAA69008DE550 /* Views (Maram) */,
 			);
@@ -47,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				386C66392EDD8AB700A67AB9 /* awn app.app */,
+				38D5984D2EEAB0430016B72C /* AwnWatch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,10 +121,12 @@
 				386C66352EDD8AB700A67AB9 /* Sources */,
 				386C66362EDD8AB700A67AB9 /* Frameworks */,
 				386C66372EDD8AB700A67AB9 /* Resources */,
+				38D598582EEAB0440016B72C /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				38D598562EEAB0440016B72C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				386C663B2EDD8AB700A67AB9 /* awn app */,
@@ -75,6 +137,28 @@
 			);
 			productName = "awn app";
 			productReference = 386C66392EDD8AB700A67AB9 /* awn app.app */;
+			productType = "com.apple.product-type.application";
+		};
+		38D5984C2EEAB0430016B72C /* AwnWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 38D5985B2EEAB0440016B72C /* Build configuration list for PBXNativeTarget "AwnWatch Watch App" */;
+			buildPhases = (
+				38D598492EEAB0430016B72C /* Sources */,
+				38D5984A2EEAB0430016B72C /* Frameworks */,
+				38D5984B2EEAB0430016B72C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				38D5984E2EEAB0430016B72C /* AwnWatch Watch App */,
+			);
+			name = "AwnWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "AwnWatch Watch App";
+			productReference = 38D5984D2EEAB0430016B72C /* AwnWatch Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -88,6 +172,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					386C66382EDD8AB700A67AB9 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					38D5984C2EEAB0430016B72C = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
@@ -107,12 +194,20 @@
 			projectRoot = "";
 			targets = (
 				386C66382EDD8AB700A67AB9 /* awn app */,
+				38D5984C2EEAB0430016B72C /* AwnWatch Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		386C66372EDD8AB700A67AB9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		38D5984B2EEAB0430016B72C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -129,7 +224,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		38D598492EEAB0430016B72C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		38D598562EEAB0440016B72C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 38D5984C2EEAB0430016B72C /* AwnWatch Watch App */;
+			targetProxy = 38D598552EEAB0440016B72C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		386C66422EDD8AB900A67AB9 /* Debug */ = {
@@ -323,6 +433,88 @@
 			};
 			name = Release;
 		};
+		38D598592EEAB0440016B72C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "AwnWatch Watch App/AwnWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H682GY4W5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AwnWatch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AwnWatch;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSFallDetectionUsageDescription = "awn needs permission to access fall detection data to notify you ";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Continuous monitoring to detect when patient leaves safe zone, even when app is not active";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Enable background geofencing to receive alerts when patient exits safe zone";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Monitor patient location for safety within safe zones";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.joud.awnapp;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joud.awnapp.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		38D5985A2EEAB0440016B72C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "AwnWatch Watch App/AwnWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8H682GY4W5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "AwnWatch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AwnWatch;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSFallDetectionUsageDescription = "awn needs permission to access fall detection data to notify you ";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Continuous monitoring to detect when patient leaves safe zone, even when app is not active";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Enable background geofencing to receive alerts when patient exits safe zone";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Monitor patient location for safety within safe zones";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.joud.awnapp;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joud.awnapp.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -340,6 +532,15 @@
 			buildConfigurations = (
 				386C66452EDD8AB900A67AB9 /* Debug */,
 				386C66462EDD8AB900A67AB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		38D5985B2EEAB0440016B72C /* Build configuration list for PBXNativeTarget "AwnWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				38D598592EEAB0440016B72C /* Debug */,
+				38D5985A2EEAB0440016B72C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
