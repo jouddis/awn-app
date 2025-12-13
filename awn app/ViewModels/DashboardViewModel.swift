@@ -7,6 +7,13 @@
 //  ViewModel for dashboard with 3 states support
 //
 
+//
+//  DashboardViewModel.swift
+//  awn app
+//
+//  Updated with CloudKit alert fetching
+//
+
 import Foundation
 import SwiftUI
 import Combine
@@ -88,23 +95,31 @@ struct TodayMedication: Identifiable {
 
 class DashboardViewModel: ObservableObject {
     // Published properties
-    @Published var patientName: String = "Norah"
-    @Published var currentLocation: String = "Home"
-    @Published var safeZoneStatus: SafeZoneStatus = .inside
+    @Published var patientName: String = ""
+    @Published var currentLocation: String = "Unknown"
+    @Published var safeZoneStatus: SafeZoneStatus = .unknown
     @Published var watchStatus: WatchStatus = .connected
     @Published var healthStatus: HealthStatus = .normal
     @Published var todayMedications: [TodayMedication] = []
     @Published var isLoading: Bool = false
+    @Published var recentAlerts: [AlertEvent] = []
+    @Published var lastUpdateTime: Date = Date()
     
     private let cloudKitManager = CloudKitManager.shared
     private let authService = AuthenticationService.shared
     private var cancellables = Set<AnyCancellable>()
+    private var refreshTimer: Timer?
     
-    // Current patient
-    private var currentPatient: Patient?
+    // Current patient - internal for access by View
+    internal var currentPatient: Patient?
     
     init() {
         setupNotifications()
+        startAutoRefresh()
+    }
+    
+    deinit {
+        refreshTimer?.invalidate()
     }
     
     // MARK: - Setup
@@ -163,10 +178,13 @@ class DashboardViewModel: ObservableObject {
                     self?.loadMedications(for: patientID)
                     self?.checkSafeZoneStatus(patient: patient)
                     
+                    // NEW: Fetch latest alerts
+                    self?.fetchLatestAlerts(for: patientID)
+                    
                 case .failure(let error):
                     print("⚠️ Failed to load patient (will retry): \(error)")
                     
-                    // Retry once after 2 seconds (CloudKit might still be syncing)
+                    // Retry once after 2 seconds
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         self?.retryLoadPatientData(patientID: patientID)
                     }
@@ -190,9 +208,11 @@ class DashboardViewModel: ObservableObject {
                     self?.loadMedications(for: patientID)
                     self?.checkSafeZoneStatus(patient: patient)
                     
+                    // NEW: Fetch latest alerts
+                    self?.fetchLatestAlerts(for: patientID)
+                    
                 case .failure(let error):
                     print("❌ Failed to load patient even after retry: \(error)")
-                    // Could show error message to user here
                 }
             }
         }
@@ -210,9 +230,6 @@ class DashboardViewModel: ObservableObject {
     }
     
     private func processTodayMedications(_ medications: [Medication]) {
-        // For demo, create sample medications
-        // In production, this would fetch actual dose logs for today
-        
         let todayMeds: [TodayMedication] = [
             TodayMedication(
                 name: "Panadol",
@@ -235,42 +252,156 @@ class DashboardViewModel: ObservableObject {
         }
     }
     
+    // MARK: - NEW: Fetch Alerts from CloudKit
+    
+    func fetchLatestAlerts(for patientID: String) {
+        print("🔍 Fetching latest alerts for patient: \(patientID)")
+        
+        // Use existing CloudKitManager method
+        cloudKitManager.fetchAlerts(for: patientID, unreadOnly: false) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let alerts):
+                    print("✅ Fetched \(alerts.count) alerts from CloudKit")
+                    
+                    // Store recent alerts (last 10)
+                    self?.recentAlerts = Array(alerts.prefix(10))
+                    
+                    // Update dashboard based on latest alert
+                    if let latestAlert = alerts.first {
+                        self?.updateDashboardFromAlert(latestAlert)
+                    }
+                    
+                    self?.lastUpdateTime = Date()
+                    
+                case .failure(let error):
+                    print("❌ Failed to fetch alerts: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Update Dashboard from Alert
+    
+    private func updateDashboardFromAlert(_ alert: AlertEvent) {
+        print("📊 Updating dashboard from alert: \(alert.alertType)")
+        
+        switch alert.alertType {
+        case .geofenceExit:
+            safeZoneStatus = .outside
+            if let lat = alert.latitude, let lon = alert.longitude {
+                currentLocation = String(format: "%.4f, %.4f", lat, lon)
+            } else {
+                currentLocation = "Outside safe zone"
+            }
+            print("⚠️ Dashboard updated: Patient is OUTSIDE safe zone")
+            
+        case .geofenceEntry:
+            safeZoneStatus = .inside
+            currentLocation = "Inside safe zone"
+            print("✅ Dashboard updated: Patient is INSIDE safe zone")
+            
+        case .fallDetected:
+            healthStatus = .fallDetected
+            if let lat = alert.latitude, let lon = alert.longitude {
+                currentLocation = String(format: "Fall at %.4f, %.4f", lat, lon)
+            }
+            print("🚨 Dashboard updated: Fall detected")
+        }
+    }
+    
+    // MARK: - Auto-Refresh
+    
+    private func startAutoRefresh() {
+        // Refresh every 30 seconds
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            guard let self = self,
+                  let patientID = self.currentPatient?.id else { return }
+            
+            self.fetchLatestAlerts(for: patientID)
+        }
+    }
+    
+    // MARK: - Pull-to-Refresh Support
+    
+    @MainActor
+    func refresh() async {
+        guard let patientID = currentPatient?.id else { return }
+        
+        isLoading = true
+        
+        // Use async wrapper for CloudKit call
+        await withCheckedContinuation { continuation in
+            cloudKitManager.fetchAlerts(for: patientID, unreadOnly: false) { [weak self] result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let alerts):
+                        self?.recentAlerts = Array(alerts.prefix(10))
+                        
+                        if let latestAlert = alerts.first {
+                            self?.updateDashboardFromAlert(latestAlert)
+                        }
+                        
+                        self?.lastUpdateTime = Date()
+                        
+                    case .failure(let error):
+                        print("❌ Refresh failed: \(error)")
+                    }
+                    
+                    self?.isLoading = false
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
     // MARK: - Safe Zone Status
     
     private func checkSafeZoneStatus(patient: Patient) {
-        // In production, this would check patient's current location
-        // against safe zone coordinates
-        
         if patient.hasSafeZone {
-            // For demo, randomly set status
-            // In production, calculate from actual GPS
-            safeZoneStatus = .inside
-            currentLocation = "Home"
+            // Will be updated by fetchLatestAlerts
+            safeZoneStatus = .unknown
+            currentLocation = "Loading..."
         } else {
             safeZoneStatus = .unknown
             currentLocation = "No safe zone set"
         }
     }
     
-    // MARK: - Alert Handlers
+    // MARK: - Alert Handlers (from NotificationCenter)
     
     private func handleGeofenceExit() {
         DispatchQueue.main.async {
             self.safeZoneStatus = .outside
-            self.currentLocation = "location: current coordinates"
+            self.currentLocation = "Outside safe zone"
+        }
+        
+        // Refresh alerts to get the new one
+        if let patientID = currentPatient?.id {
+            fetchLatestAlerts(for: patientID)
         }
     }
     
     private func handleGeofenceEntry() {
         DispatchQueue.main.async {
             self.safeZoneStatus = .inside
-            self.currentLocation = "Home"
+            self.currentLocation = "Inside safe zone"
+        }
+        
+        // Refresh alerts
+        if let patientID = currentPatient?.id {
+            fetchLatestAlerts(for: patientID)
         }
     }
     
     private func handleFallDetected() {
         DispatchQueue.main.async {
             self.healthStatus = .fallDetected
+        }
+        
+        // Refresh alerts
+        if let patientID = currentPatient?.id {
+            fetchLatestAlerts(for: patientID)
         }
     }
     
@@ -296,7 +427,6 @@ class DashboardViewModel: ObservableObject {
         watchStatus = .connected
         healthStatus = .normal
         
-        // Mark first medication as taken
         if !todayMedications.isEmpty {
             todayMedications[0] = TodayMedication(
                 name: todayMedications[0].name,
@@ -308,4 +438,3 @@ class DashboardViewModel: ObservableObject {
         }
     }
 }
-

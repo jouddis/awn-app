@@ -4,15 +4,22 @@
 //
 //  Created by Joud Almashgari on 09/12/2025.
 //
+//
+//  DashboardView.swift
+//  awn app
+//
+//  Updated with pull-to-refresh and recent alerts
+//
 
 import SwiftUI
 
 struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
     @EnvironmentObject var authViewModel: AuthenticationViewModel
+    @Environment(\.scenePhase) var scenePhase
     
     var body: some View {
-        NavigationStack {  // ✅ Wrap entire dashboard in NavigationStack
+        NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
@@ -20,13 +27,19 @@ struct DashboardView: View {
                     // Header
                     DashboardHeader(
                         caregiverName: authViewModel.currentUser?.fullName ?? "Caregiver",
-                        patientName: viewModel.patientName
+                        patientName: viewModel.patientName,
+                        lastUpdate: viewModel.lastUpdateTime
                     )
                     
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 24) {
                             // Status Section
                             StatusSection(viewModel: viewModel)
+                            
+                            // Recent Alerts Section
+                            if !viewModel.recentAlerts.isEmpty {
+                                RecentAlertsSection(viewModel: viewModel)
+                            }
                             
                             // Medications Section
                             MedicationsSection(viewModel: viewModel)
@@ -36,15 +49,24 @@ struct DashboardView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 20)
                     }
-                    
-                  
+                    .refreshable {
+                        await viewModel.refresh()
+                    }
                 }
             }
             .preferredColorScheme(.dark)
             .onAppear {
                 viewModel.loadDashboardData()
             }
-            .navigationBarHidden(true)  // Hide default nav bar
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    // Refresh when app becomes active
+                    if let patientID = viewModel.currentPatient?.id {
+                        viewModel.fetchLatestAlerts(for: patientID)
+                    }
+                }
+            }
+            .navigationBarHidden(true)
         }
     }
 }
@@ -54,11 +76,11 @@ struct DashboardView: View {
 struct DashboardHeader: View {
     let caregiverName: String
     let patientName: String
+    let lastUpdate: Date
     @State private var showDebugSettings = false
     
     var body: some View {
         HStack {
-            // Profile image placeholder
             Circle()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 50, height: 50)
@@ -75,11 +97,14 @@ struct DashboardHeader: View {
                 Text(caregiverName)
                     .font(.system(size: 16))
                     .foregroundColor(.white.opacity(0.6))
+                
+                Text("Updated: \(lastUpdate, style: .relative) ago")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.4))
             }
             
             Spacer()
             
-            // Debug settings (temporary)
             Button(action: {
                 showDebugSettings = true
             }) {
@@ -89,22 +114,16 @@ struct DashboardHeader: View {
             }
             .padding(.trailing, 8)
             
-            // Notification bell
-            Button(action: {
-                // Show notifications
-            }) {
+            Button(action: {}) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell.fill")
                         .font(.system(size: 24))
                         .foregroundColor(.blue)
                     
-                    // Notification badge
-                    if true { // Has unread
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                            .offset(x: 2, y: -2)
-                    }
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 2, y: -2)
                 }
             }
         }
@@ -124,7 +143,6 @@ struct StatusSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Section title with status indicator
             HStack {
                 Text("How \(viewModel.patientName) is doing")
                     .font(.system(size: 20, weight: .semibold))
@@ -132,15 +150,12 @@ struct StatusSection: View {
                 
                 Spacer()
                 
-                // Status text
                 Text(viewModel.safeZoneStatus.displayText)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(viewModel.safeZoneStatus.color)
             }
             
-            // Status cards row 1
             HStack(spacing: 12) {
-                // Location card
                 StatusCard(
                     icon: "location.fill",
                     title: "Current place",
@@ -149,7 +164,6 @@ struct StatusSection: View {
                     isAlert: viewModel.safeZoneStatus == .outside
                 )
                 
-                // Watch connection card
                 StatusCard(
                     icon: "applewatch",
                     title: "Watch is",
@@ -159,7 +173,6 @@ struct StatusSection: View {
                 )
             }
             
-            // Health status card
             HealthStatusCard(viewModel: viewModel)
         }
     }
@@ -238,6 +251,105 @@ struct HealthStatusCard: View {
     }
 }
 
+// MARK: - Recent Alerts Section (NEW)
+
+struct RecentAlertsSection: View {
+    @ObservedObject var viewModel: DashboardViewModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Recent Alerts")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(viewModel.recentAlerts.count)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            
+            ForEach(viewModel.recentAlerts.prefix(5)) { alert in
+                AlertRow(alert: alert)
+            }
+        }
+    }
+}
+
+struct AlertRow: View {
+    let alert: AlertEvent
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: alertIcon)
+                .font(.system(size: 20))
+                .foregroundColor(alertColor)
+                .frame(width: 40)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(alertTitle)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white)
+                
+                Text(alert.timestamp, style: .relative)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            
+            Spacer()
+            
+            if alert.isPendingConfirmation {
+                Text("PENDING")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.2))
+                    .cornerRadius(4)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.05))
+        )
+    }
+    
+    private var alertIcon: String {
+        switch alert.alertType {
+        case .fallDetected:
+            return "figure.fall"
+        case .geofenceExit:
+            return "location.circle"
+        case .geofenceEntry:
+            return "checkmark.circle"
+        }
+    }
+    
+    private var alertColor: Color {
+        switch alert.alertType {
+        case .fallDetected:
+            return .red
+        case .geofenceExit:
+            return .orange
+        case .geofenceEntry:
+            return .green
+        }
+    }
+    
+    private var alertTitle: String {
+        switch alert.alertType {
+        case .fallDetected:
+            return "Fall detected"
+        case .geofenceExit:
+            return "Left safe zone"
+        case .geofenceEntry:
+            return "Entered safe zone"
+        }
+    }
+}
+
 // MARK: - Medications Section
 
 struct MedicationsSection: View {
@@ -245,7 +357,6 @@ struct MedicationsSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Section header
             HStack {
                 Text("Medications")
                     .font(.system(size: 20, weight: .semibold))
@@ -253,16 +364,13 @@ struct MedicationsSection: View {
                 
                 Spacer()
                 
-                Button(action: {
-                    // Show all medications
-                }) {
+                Button(action: {}) {
                     Text("Show All")
                         .font(.system(size: 14))
                         .foregroundColor(.blue)
                 }
             }
             
-            // Medication cards
             ForEach(viewModel.todayMedications) { medication in
                 MedicationCard(medication: medication)
             }
@@ -277,18 +385,15 @@ struct MedicationCard: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Medication icon
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white.opacity(0.05))
                     .frame(width: 60, height: 60)
                 
-                // Pill illustration (simplified)
                 medication.icon
                     .font(.system(size: 32))
             }
             
-            // Medication info
             VStack(alignment: .leading, spacing: 4) {
                 Text(medication.name)
                     .font(.system(size: 18, weight: .medium))
@@ -301,7 +406,6 @@ struct MedicationCard: View {
             
             Spacer()
             
-            // Taken indicator
             if medication.isTaken {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
@@ -328,94 +432,9 @@ struct MedicationCard: View {
     }
 }
 
-// MARK: - Bottom Tab Bar (with NavigationLinks)
-
-struct BottomTabBar: View {
-    @State private var selectedTab: Tab = .home
-    
-    enum Tab {
-        case home, location, medications
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                // Home
-                TabBarButton(
-                    icon: "house.fill",
-                    title: "Home",
-                    isSelected: selectedTab == .home
-                ) {
-                    selectedTab = .home
-                }
-                
-                // Location - NavigationLink instead of sheet ✅
-                NavigationLink(destination: SafeZoneView()) {
-                    VStack(spacing: 6) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 22))
-                        
-                        Text("Location")
-                            .font(.system(size: 12))
-                    }
-                    .foregroundColor(selectedTab == .location ? .blue : .white.opacity(0.5))
-                    .frame(maxWidth: .infinity)
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    selectedTab = .location
-                })
-                
-                // Medications - NavigationLink (placeholder) ✅
-                NavigationLink(destination: MedicationsPlaceholderView()) {
-                    VStack(spacing: 6) {
-                        Image(systemName: "pills.fill")
-                            .font(.system(size: 22))
-                        
-                        Text("Medicines")
-                            .font(.system(size: 12))
-                    }
-                    .foregroundColor(selectedTab == .medications ? .blue : .white.opacity(0.5))
-                    .frame(maxWidth: .infinity)
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    selectedTab = .medications
-                })
-            }
-            .padding(.vertical, 12)
-            .background(
-                Color.gray.opacity(0.1)
-                    .blur(radius: 20)
-            )
-        }
-    }
-}
-
-struct TabBarButton: View {
-    let icon: String
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 22))
-                
-                Text(title)
-                    .font(.system(size: 12))
-            }
-            .foregroundColor(isSelected ? .blue : .white.opacity(0.5))
-            .frame(maxWidth: .infinity)
-        }
-    }
-}
-
-
 // MARK: - Preview
 
 #Preview {
     DashboardView()
         .environmentObject(AuthenticationViewModel())
 }
-

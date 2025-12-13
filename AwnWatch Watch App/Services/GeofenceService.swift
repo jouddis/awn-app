@@ -5,7 +5,13 @@
 //  Created by Joud Almashgari on 11/12/2025.
 //  watchOS-compatible geofence monitoring
 //  Uses: Timer-based checks + Extended runtime (no region monitoring)
-
+//
+//  GeofenceService.swift
+//  Awn Watch App
+//
+//  watchOS-compatible geofence monitoring
+//  Uses: Timer-based checks + Extended runtime (no region monitoring)
+//
 
 import Foundation
 import CoreLocation
@@ -20,7 +26,10 @@ class GeofenceService: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var isMonitoring: Bool = false
     @Published var currentSafeZone: Patient?
-    @Published var isInsideSafeZone: Bool = true
+    @Published var isInsideSafeZone: Bool = false  // Start as false to detect first entry
+    
+    // Track if we've done initial check
+    private var hasPerformedInitialCheck: Bool = false
     @Published var lastKnownLocation: CLLocation?
     @Published var currentMode: MonitoringMode = .highPower // Always high power on watch
     
@@ -214,7 +223,18 @@ class GeofenceService: NSObject, ObservableObject {
         
         print("📍 Location check: \(distance.rounded())m from center (radius: \(radius)m)")
         
-        // Detect transitions
+        // On first check, just set state without creating alert
+        if !hasPerformedInitialCheck {
+            hasPerformedInitialCheck = true
+            print("🔍 Initial state: \(isNowInside ? "Inside" : "Outside") safe zone")
+            DispatchQueue.main.async {
+                self.isInsideSafeZone = isNowInside
+                self.lastKnownLocation = currentLocation
+            }
+            return
+        }
+        
+        // Detect transitions (after initial check)
         if wasInside && !isNowInside {
             handleGeofenceExit(at: currentLocation)
         } else if !wasInside && isNowInside {
