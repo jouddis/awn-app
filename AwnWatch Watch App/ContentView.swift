@@ -4,10 +4,6 @@
 //
 //  Created by Joud Almashgari on 11/12/2025.
 //  Main navigation view for watchOS app
-//
-//  ContentView.swift (Simplified Version)
-//  Awn Watch App
-//
 //  Simplified UI - Only shows monitoring status
 //  Alerts are sent to caregiver's iPhone, not displayed on watch
 //
@@ -25,11 +21,12 @@ struct ContentView: View {
             } else if viewModel.currentPatient != nil {
                 MonitoringView(viewModel: viewModel)
             } else {
-                SetupRequiredView()
+                SetupRequiredView(viewModel: viewModel)
             }
         }
         .onAppear {
-            viewModel.initialize()
+            // Changed from initialize() to fetchCurrentPatient()
+            viewModel.fetchCurrentPatient()
         }
     }
 }
@@ -52,6 +49,8 @@ struct LoadingView: View {
 // MARK: - Setup Required View
 
 struct SetupRequiredView: View {
+    @ObservedObject var viewModel: WatchViewModel
+    
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "iphone.and.arrow.forward")
@@ -65,6 +64,14 @@ struct SetupRequiredView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+            
+            // Add retry button
+            Button("Retry") {
+                viewModel.fetchCurrentPatient()
+            }
+            .buttonStyle(.bordered)
+            .tint(.blue)
+            .font(.caption)
         }
         .padding()
     }
@@ -95,6 +102,17 @@ struct MonitoringView: View {
                 if let location = viewModel.lastKnownLocation {
                     LocationCard(location: location)
                 }
+                
+                // Refresh button
+                Button(action: {
+                    viewModel.refresh()
+                }) {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .tint(.blue)
+                .padding(.top, 8)
             }
             .padding(.vertical, 8)
         }

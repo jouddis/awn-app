@@ -8,21 +8,10 @@
 //  WatchViewModel.swift (Simplified Version)
 //  Awn Watch App
 //
-//  ViewModel for watch app - monitoring status only
-//  Alerts are created and sent to caregiver, not displayed on watch
+//  WatchViewModel.swift
+//  awn app Watch App
 //
-//  WatchViewModel.swift (Simplified Version)
-//  Awn Watch App
-//
-//  ViewModel for watch app - monitoring status only
-//  Alerts are created and sent to caregiver, not displayed on watch
-//
-//
-//  WatchViewModel.swift (Simplified Version)
-//  Awn Watch App
-//
-//  ViewModel for watch app - monitoring status only
-//  Alerts are created and sent to caregiver, not displayed on watch
+//  Updated to use fetchCurrentPatient() - no more cached ID issues!
 //
 
 import Foundation
@@ -31,234 +20,228 @@ import Combine
 import CoreLocation
 
 class WatchViewModel: ObservableObject {
-    
     // MARK: - Published Properties
     
-    @Published var isLoading: Bool = true
     @Published var currentPatient: Patient?
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
     
-    // Monitoring status
+    // Exposed monitoring state for UI
     @Published var isFallMonitoring: Bool = false
     @Published var isGeofenceMonitoring: Bool = false
-    @Published var isInsideSafeZone: Bool = true
+    @Published var isInsideSafeZone: Bool = false
+    @Published var monitoringMode: GeofenceService.MonitoringMode = .highPower
     @Published var lastKnownLocation: CLLocation?
-    @Published var monitoringMode: GeofenceService.MonitoringMode = .lowPower
     
-    // MARK: - Private Properties
+    // MARK: - Services
     
     private let cloudKitManager = WatchCloudKitManager.shared
-    private let fallDetectionService = FallDetectionService.shared
     private let geofenceService = GeofenceService.shared
+    private let fallDetectionService = FallDetectionService.shared
     
     private var cancellables = Set<AnyCancellable>()
-    
-    // Patient ID will come from Family Setup pairing
-    private var patientID: String?
     
     // MARK: - Initialization
     
     init() {
-        setupBindings()
-        
-        // 🧪 DEBUG: Set patient ID for testing
-        // Remove this in production - should come from iOS app via Watch Connectivity
-        #if DEBUG
-        UserDefaults.standard.set("E41B8C79-3CAF-4ABC-A346-AC21ADAC5825", forKey: "currentPatientID")
-        print("🧪 DEBUG: Set test patient ID")
-        #endif
-        
-        // Note: Alerts are NOT displayed on watch
-        // They are created by services and sent to caregiver's iPhone via CloudKit
+        setupSubscribers()
     }
     
-    // MARK: - Public Methods
-    
-    func initialize() {
-        fetchCurrentPatient()
-    }
-    
-    func refreshData() {
-        fetchCurrentPatient()
-    }
-    
-    // MARK: - Private Methods
-    
-    private func setupBindings() {
-        // Bind fall detection service
-        fallDetectionService.$isMonitoring
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$isFallMonitoring)
-        
-        // Bind geofence service
+    private func setupSubscribers() {
+        // Mirror geofence monitoring states
         geofenceService.$isMonitoring
             .receive(on: DispatchQueue.main)
-            .assign(to: &$isGeofenceMonitoring)
+            .assign(to: \.isGeofenceMonitoring, on: self)
+            .store(in: &cancellables)
         
         geofenceService.$isInsideSafeZone
             .receive(on: DispatchQueue.main)
-            .assign(to: &$isInsideSafeZone)
-        
-        geofenceService.$lastKnownLocation
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$lastKnownLocation)
+            .assign(to: \.isInsideSafeZone, on: self)
+            .store(in: &cancellables)
         
         geofenceService.$currentMode
             .receive(on: DispatchQueue.main)
-            .assign(to: &$monitoringMode)
+            .assign(to: \.monitoringMode, on: self)
+            .store(in: &cancellables)
+        
+        geofenceService.$lastKnownLocation
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.lastKnownLocation, on: self)
+            .store(in: &cancellables)
+        
+        // Mirror fall detection monitoring state
+        fallDetectionService.$isMonitoring
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isFallMonitoring, on: self)
+            .store(in: &cancellables)
     }
     
-    private func fetchCurrentPatient() {
+    // MARK: - Fetch Patient (OPTION 2 - Simplest)
+    
+    func fetchCurrentPatient() {
         print("📱 [WatchViewModel] fetchCurrentPatient called")
         isLoading = true
+        errorMessage = nil
         
-        // In a real implementation, get patient ID from:
-        // 1. Family Setup pairing info
-        // 2. CloudKit subscription
-        // 3. UserDefaults cache
-        
-        // For now, query for the patient record associated with this watch
-        fetchPairedPatient()
-    }
-    
-    private func fetchPairedPatient() {
-        // Placeholder: Get from UserDefaults if previously cached
-        if let cachedPatientID = UserDefaults.standard.string(forKey: "currentPatientID") {
-            print("✅ Found cached patient ID: \(cachedPatientID)")
-            fetchPatient(byID: cachedPatientID)
-        } else {
-            print("❌ No patient ID found in UserDefaults")
-            // No patient found - setup required
+        // Use fetchCurrentPatient() - queries for the most recent patient
+        cloudKitManager.fetchCurrentPatient { [weak self] result in
             DispatchQueue.main.async {
-                self.isLoading = false
-                self.currentPatient = nil
-                print("⚠️ Showing 'Setup Required' screen")
+                self?.isLoading = false
+                
+                switch result {
+                case .success(let patient):
+                    print("✅ [WatchViewModel] Patient loaded: \(patient.name)")
+                    print("   Patient ID: \(patient.id)")
+                    print("   Has safe zone: \(patient.hasSafeZone)")
+                    
+                    if patient.hasSafeZone {
+                        print("   Safe zone: \(patient.safeZoneDisplayName)")
+                        print("   Radius: \(patient.safeZoneRadius ?? 0)m")
+                    }
+                    
+                    self?.currentPatient = patient
+                    self?.startMonitoring(for: patient)
+                    
+                case .failure(let error):
+                    print("❌ [WatchViewModel] Failed to fetch patient: \(error.localizedDescription)")
+                    self?.errorMessage = "Could not load patient data"
+                    
+                    // Fallback to mock patient for testing
+                    self?.useMockPatient()
+                }
             }
         }
     }
     
-    private func fetchPatient(byID id: String) {
-        print("🔍 [WatchViewModel] Fetching patient from CloudKit: \(id)")
+    // MARK: - Start Monitoring
+    
+    private func startMonitoring(for patient: Patient) {
+        print("🚀 [WatchViewModel] Starting monitoring for: \(patient.name)")
         
-        // 🧪 DEBUG: Use mock patient if CloudKit fails
-        #if DEBUG
-        // Create mock patient for testing
+        // Start geofence monitoring (service fetches safe zone itself)
+        geofenceService.startMonitoring(for: patient.id)
+        
+        // Log safe zone details if available
+        if patient.hasSafeZone,
+           let lat = patient.safeZoneCenterLat,
+           let lon = patient.safeZoneCenterLon,
+           let radius = patient.safeZoneRadius {
+            
+            let name = patient.safeZoneDisplayName
+            
+            print("📍 Starting geofence monitoring:")
+            print("   Zone: \(name)")
+            print("   Center: \(lat), \(lon)")
+            print("   Radius: \(radius)m")
+        } else {
+            print("⚠️ No safe zone configured for patient")
+        }
+        
+        // Start fall detection monitoring
+        print("🏃 Starting fall detection monitoring")
+        fallDetectionService.startMonitoring(for: patient.id)
+    }
+    
+    // MARK: - Stop Monitoring
+    
+    func stopMonitoring() {
+        print("⏹️ [WatchViewModel] Stopping all monitoring")
+        geofenceService.stopMonitoring()
+        fallDetectionService.stopMonitoring()
+    }
+    
+    // MARK: - Mock Patient (Fallback for Testing)
+    
+    private func useMockPatient() {
+        print("🧪 [WatchViewModel] Using MOCK patient for testing")
+        
         let mockPatient = Patient(
-            id: id,
+            id: "MOCK-PATIENT-ID",
             name: "Ahmed Ali",
-            dateOfBirth: Date(),
-            caregiverId: "caregiver123",
-            watchDeviceID: nil,
-            watchSerialNumber: nil,
-            watchPairedDate: nil,
+            dateOfBirth: Calendar.current.date(byAdding: .year, value: -75, to: Date()),
+            caregiverId: "MOCK-CAREGIVER-ID",
             safeZoneName: "Home",
-            safeZoneCenterLat: 24.7136,
+            safeZoneCenterLat: 24.7136,  // Riyadh
             safeZoneCenterLon: 46.6753,
-            safeZoneRadius: 500.0,
-            safeZoneIsActive: true
+            safeZoneRadius: 250.0,
+            safeZoneIsActive: true,
+            safeZoneCreatedAt: Date(),
+            safeZoneUpdatedAt: Date()
         )
         
-        // Try CloudKit first, fallback to mock if fails
-        cloudKitManager.fetchPatient(byID: id) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                switch result {
-                case .success(let patient):
-                    print("✅ [WatchViewModel] Patient fetched from CloudKit: \(patient.name)")
-                    self?.currentPatient = patient
-                    self?.patientID = patient.id
-                    
-                    // Cache patient ID
-                    UserDefaults.standard.set(patient.id, forKey: "currentPatientID")
-                    
-                    // Start monitoring services
-                    self?.startMonitoring(for: patient.id)
-                    
-                    print("✅ Patient loaded: \(patient.name)")
-                    print("📍 Monitoring started for patient: \(patient.id)")
-                    
-                case .failure(let error):
-                    print("❌ [WatchViewModel] CloudKit fetch failed: \(error.localizedDescription)")
-                    print("🧪 [WatchViewModel] Using MOCK patient for testing")
-                    
-                    // Use mock patient for testing
-                    self?.currentPatient = mockPatient
-                    self?.patientID = mockPatient.id
-                    
-                    // Start monitoring services
-                    self?.startMonitoring(for: mockPatient.id)
-                    
-                    print("✅ Mock patient loaded: \(mockPatient.name)")
-                    print("📍 Monitoring started with mock data")
-                }
-            }
-        }
-        #else
-        // Production: Only use CloudKit
-        cloudKitManager.fetchPatient(byID: id) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                switch result {
-                case .success(let patient):
-                    print("✅ [WatchViewModel] Patient fetched successfully: \(patient.name)")
-                    self?.currentPatient = patient
-                    self?.patientID = patient.id
-                    
-                    // Cache patient ID
-                    UserDefaults.standard.set(patient.id, forKey: "currentPatientID")
-                    
-                    // Start monitoring services
-                    self?.startMonitoring(for: patient.id)
-                    
-                    print("✅ Patient loaded: \(patient.name)")
-                    print("📍 Monitoring started for patient: \(patient.id)")
-                    
-                case .failure(let error):
-                    print("❌ [WatchViewModel] Failed to fetch patient: \(error)")
-                    print("❌ Error details: \(error.localizedDescription)")
-                }
-            }
-        }
-        #endif
-    }
-    
-    private func startMonitoring(for patientID: String) {
-        // Start fall detection
-        fallDetectionService.startMonitoring(for: patientID)
-        
-        // Start geofence monitoring
-        geofenceService.startMonitoring(for: patientID)
-        
-        print("🎯 All monitoring services started")
-        print("   - Fall detection: Active")
-        print("   - Geofence monitoring: Active")
-        print("   - Alerts will be sent to caregiver's iPhone")
-    }
-}
-
-// MARK: - Patient Configuration Helper
-
-extension WatchViewModel {
-    
-    /// Call this method when the watch is first paired with a patient
-    /// This should be triggered by the iOS app sending the patient ID
-    func configureForPatient(id: String) {
-        UserDefaults.standard.set(id, forKey: "currentPatientID")
-        fetchPatient(byID: id)
-    }
-    
-    /// Clear patient configuration (for testing or when unpairing)
-    func clearPatientConfiguration() {
-        UserDefaults.standard.removeObject(forKey: "currentPatientID")
-        
-        fallDetectionService.stopMonitoring()
-        geofenceService.stopMonitoring()
-        
         DispatchQueue.main.async {
-            self.currentPatient = nil
-            self.isFallMonitoring = false
-            self.isGeofenceMonitoring = false
+            self.currentPatient = mockPatient
+            self.startMonitoring(for: mockPatient)
+            
+            print("✅ Mock patient loaded: \(mockPatient.name)")
+            print("   Mock safe zone: \(mockPatient.safeZoneDisplayName)")
+        }
+    }
+    
+    // MARK: - Refresh Data
+    
+    func refresh() {
+        print("🔄 [WatchViewModel] Refreshing patient data...")
+        fetchCurrentPatient()
+    }
+    
+    // MARK: - Manual Alert Testing (for development)
+    
+    func testFallAlert() {
+        guard let patient = currentPatient else {
+            print("❌ No patient available for testing")
+            return
+        }
+        
+        print("🧪 Creating test fall alert...")
+        
+        let alert = AlertEvent(
+            patientId: patient.id,
+            alertType: .fallDetected,
+            timestamp: Date(),
+            latitude: nil,
+            longitude: nil,
+            isRead: false,
+            requiresConfirmation: false,
+            confirmationStatus: .notApplicable
+        )
+        
+        cloudKitManager.saveAlertEvent(alert) { result in
+            switch result {
+            case .success(let savedAlert):
+                print("✅ Test alert created: \(savedAlert.id)")
+            case .failure(let error):
+                print("❌ Failed to create test alert: \(error)")
+            }
+        }
+    }
+    
+    func testGeofenceAlert() {
+        guard let patient = currentPatient else {
+            print("❌ No patient available for testing")
+            return
+        }
+        
+        print("🧪 Creating test geofence exit alert...")
+        
+        let alert = AlertEvent(
+            patientId: patient.id, // Note: struct uses patientId; initializer label is patientId
+            alertType: .geofenceExit,
+            timestamp: Date(),
+            latitude: 24.7136,
+            longitude: 46.6753,
+            isRead: false,
+            requiresConfirmation: true,
+            confirmationStatus: .pending
+        )
+        
+        cloudKitManager.saveAlertEvent(alert) { result in
+            switch result {
+            case .success(let savedAlert):
+                print("✅ Test alert created: \(savedAlert.id)")
+            case .failure(let error):
+                print("❌ Failed to create test alert: \(error)")
+            }
         }
     }
 }

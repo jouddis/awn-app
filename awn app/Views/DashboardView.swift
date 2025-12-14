@@ -82,21 +82,23 @@ struct DashboardHeader: View {
     var body: some View {
         HStack {
             Circle()
-                .fill(Color.gray.opacity(0.3))
+                .fill(Color.black)
                 .frame(width: 50, height: 50)
-                .overlay(
-                    Text("👤")
-                        .font(.system(size: 24))
+                .overlay(Image(systemName: "person.fill").resizable()
+                    .frame(width: 30, height: 30)
+                    .foregroundColor(Color(hex: "6C7CD1")),
                 )
+                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
+                .shadow(color: Color.white.opacity(0.1), radius: 5)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text("Welcome back")
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.system(size: 24, weight: .semibold))
                     .foregroundColor(.white)
                 
-                Text(caregiverName)
-                    .font(.system(size: 16))
-                    .foregroundColor(.white.opacity(0.6))
+//                Text(caregiverName)
+//                    .font(.system(size: 16))
+//                    .foregroundColor(.white.opacity(0.6))
                 
                 Text("Updated: \(lastUpdate, style: .relative) ago")
                     .font(.system(size: 12))
@@ -116,16 +118,17 @@ struct DashboardHeader: View {
             
             Button(action: {}) {
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: "bell.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.blue)
+                    Circle().fill(Color.black).frame(width: 45, height: 45)
+                        .overlay(Image(systemName: "bell.fill").foregroundColor(Color(hex: "6C7CD1")))
+                        .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 1))
+                        .shadow(color: Color.white.opacity(0.1), radius: 5)
                     
                     Circle()
                         .fill(Color.red)
                         .frame(width: 8, height: 8)
                         .offset(x: 2, y: -2)
                 }
-            }
+            }.glassEffect()
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
