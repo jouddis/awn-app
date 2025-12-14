@@ -40,9 +40,17 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		38B64A5D2EEEC06C00BE7EFE /* Exceptions for "awn app" folder in "awn app" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+			);
+			target = 386C66382EDD8AB700A67AB9 /* awn app */;
+		};
 		38D5986D2EEAB4CA0016B72C /* Exceptions for "awn app" folder in "AwnWatch Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Assets.xcassets,
 				Models/AlertEvent.swift,
 				Models/AppUser.swift,
 				Models/Caregiver.swift,
@@ -57,6 +65,7 @@
 		386C663B2EDD8AB700A67AB9 /* awn app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				38B64A5D2EEEC06C00BE7EFE /* Exceptions for "awn app" folder in "awn app" target */,
 				38D5986D2EEAB4CA0016B72C /* Exceptions for "awn app" folder in "AwnWatch Watch App" target */,
 			);
 			path = "awn app";
