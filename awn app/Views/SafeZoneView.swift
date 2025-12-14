@@ -4,7 +4,6 @@
 //
 //  Created by Joud Almashgari on 09/12/2025.
 //
-
 import SwiftUI
 import MapKit
 
@@ -44,7 +43,7 @@ struct SafeZoneView: View {
                 )
             }
             
-            // ✨ NEW: Delete confirmation alert overlay
+            // Delete confirmation alert overlay
             if viewModel.showDeleteAlert {
                 DeleteConfirmationAlertView(
                     zoneName: viewModel.zoneName,
@@ -86,30 +85,9 @@ struct LocationHeader: View {
     
     var body: some View {
         HStack {
-            Button(action: onBack) {
-                HStack(spacing: 8) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Back")
-                        .font(.system(size: 17))
-                }
-                .foregroundColor(.blue)
-            }
-            
-            Spacer()
-            
             Text("Location")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
-            
-            Spacer()
-            
-            // Invisible spacer for centering
-            HStack(spacing: 8) {
-                Image(systemName: "chevron.left")
-                Text("Back")
-            }
-            .opacity(0)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -117,31 +95,45 @@ struct LocationHeader: View {
     }
 }
 
-// MARK: - State 1: No Zone (Permission Cards + Add Button)
+// MARK: - State 1: No Zone (Swipeable Permission Cards + Add Button)
 
 struct NoZoneStateView: View {
     let onAddLocation: () -> Void
+    @State private var currentPage = 0
     
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
             
-            // Permission cards with page indicator
+            // Permission cards carousel with TabView
             VStack(spacing: 16) {
-                // Card 1: Device permissions
-                PermissionCard(
-                    icon: "location.fill",
-                    title: "Device permissions",
-                    description: "require to location permission to be \"on\" for the app to work"
-                )
+                TabView(selection: $currentPage) {
+                    // Card 1: Device permissions
+                    PermissionCard(
+                        icon: "location.fill",
+                        title: "Device permissions",
+                        description: "require to location permission to be \"on\" for the app to work"
+                    )
+                    .tag(0)
+                    
+                    // Card 2: Location sharing
+                    PermissionCard(
+                        icon: "location.circle.fill",
+                        title: "Location sharing",
+                        description: "Share your loved one's location with family members for peace of mind"
+                    )
+                    .tag(1)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 100)
                 
-                // Page indicator
+                // Custom page indicator
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(Color.blue)
+                        .fill(currentPage == 0 ? Color.blue : Color.gray.opacity(0.3))
                         .frame(width: 8, height: 8)
                     Circle()
-                        .fill(Color.gray.opacity(0.3))
+                        .fill(currentPage == 1 ? Color.blue : Color.gray.opacity(0.3))
                         .frame(width: 8, height: 8)
                 }
                 .padding(.top, 8)
@@ -167,7 +159,7 @@ struct NoZoneStateView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(Color.blue)
+                .background(Color(hex: "6C7CD1"))
                 .cornerRadius(12)
             }
             .padding(.horizontal, 24)
@@ -501,7 +493,7 @@ struct ViewingZoneStateView: View {
                 
                 Spacer()
                 
-                // ✨ NEW: Edit Button
+                // Edit Button
                 Button(action: {
                     viewModel.editZone()
                 }) {
@@ -509,19 +501,19 @@ struct ViewingZoneStateView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(10)
-                        .background(Color.gray.opacity(0.3)) // Gray background
+                        .background(Color.gray.opacity(0.3))
                         .cornerRadius(8)
                 }
                 
-                // ✨ NEW: Delete Button
+                // Delete Button
                 Button(action: {
-                    viewModel.showDeleteAlert = true // Show confirmation alert
+                    viewModel.showDeleteAlert = true
                 }) {
                     Image(systemName: "trash.fill")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(10)
-                        .background(Color.red) // Red background
+                        .background(Color.red)
                         .cornerRadius(8)
                 }
             }
@@ -603,7 +595,7 @@ struct SuccessAlertView: View {
     }
 }
 
-// MARK: - Delete Confirmation Alert (✨ NEW)
+// MARK: - Delete Confirmation Alert
 
 struct DeleteConfirmationAlertView: View {
     let zoneName: String
@@ -638,7 +630,7 @@ struct DeleteConfirmationAlertView: View {
                 Button(action: onDelete) {
                     Text("Delete")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.red) // Destructive styling
+                        .foregroundColor(.red)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                 }
@@ -724,4 +716,3 @@ struct Triangle: Shape {
 #Preview {
     SafeZoneView()
 }
-

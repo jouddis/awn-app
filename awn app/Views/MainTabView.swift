@@ -93,11 +93,12 @@ struct MainBottomTabBar: View {
                     tabManager.selectedTab = .medications
                 }
             }
-            .padding(.vertical, 12)
-            .background(
-                Color.gray.opacity(0.1)
-                    .blur(radius: 20)
-            )
+            .padding(.horizontal, 12).padding(.vertical, 5)
+            .background(ZStack { Capsule().fill(.black); Capsule().fill(Color(hex: "6C7CD1").opacity(0.19)) }
+                .shadow(color: Color.white.opacity(0.1), radius: 5, x: 0, y: -2)
+                .shadow(color: Color.black.opacity(10), radius: 0.2, x: 0.4, y: 0.5)
+                .shadow(color: Color.white.opacity(5), radius: 0.2, x: -0.5, y: -0.5))
+            .padding(.horizontal).padding(.bottom, -16)
         }
     }
 }
@@ -109,17 +110,26 @@ struct MainTabButton: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 22))
+        HStack{
+            Button(action: action) {
+                VStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 22))
+                    
+                    Text(title)
+                        .font(.system(size: 12))
+                }
+                .foregroundColor(isSelected ? (Color(hex: "6C7CD1")) : .gray)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(isSelected ? .black : Color.clear).cornerRadius(44)
                 
-                Text(title)
-                    .font(.system(size: 12))
+                
+                
+                
             }
-            .foregroundColor(isSelected ? .blue : .white.opacity(0.5))
-            .frame(maxWidth: .infinity)
         }
+
     }
 }
 

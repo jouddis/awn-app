@@ -6,12 +6,11 @@
 //
 //  ViewModel for dashboard with 3 states support
 //
-
 //
 //  DashboardViewModel.swift
 //  awn app
 //
-//  Updated with CloudKit alert fetching
+//  Updated with dynamic UI states and notification panel logic
 //
 
 import Foundation
@@ -94,7 +93,8 @@ struct TodayMedication: Identifiable {
 // MARK: - Dashboard ViewModel
 
 class DashboardViewModel: ObservableObject {
-    // Published properties
+    // MARK: - Published Properties
+    
     @Published var patientName: String = ""
     @Published var currentLocation: String = "Unknown"
     @Published var safeZoneStatus: SafeZoneStatus = .unknown
@@ -105,13 +105,24 @@ class DashboardViewModel: ObservableObject {
     @Published var recentAlerts: [AlertEvent] = []
     @Published var lastUpdateTime: Date = Date()
     
+    // NEW: Dynamic UI State Properties
+    @Published var hasLocation: Bool = false
+    @Published var hasMedication: Bool = false
+    @Published var hasUnreadAlerts: Bool = false
+    @Published var hasPatient: Bool = false
+    
+    // MARK: - Private Properties
+    
     private let cloudKitManager = CloudKitManager.shared
     private let authService = AuthenticationService.shared
     private var cancellables = Set<AnyCancellable>()
     private var refreshTimer: Timer?
+    private var lastReadAlertsTimestamp: Date?
     
     // Current patient - internal for access by View
     internal var currentPatient: Patient?
+    
+    // MARK: - Initialization
     
     init() {
         setupNotifications()
@@ -146,10 +157,14 @@ class DashboardViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // MARK: - Load Data
+    // MARK: - Load Dashboard Data
     
     func loadDashboardData() {
-        guard let currentUser = authService.currentUser else { return }
+        guard let currentUser = authService.currentUser else {
+            print("❌ No authenticated user")
+            resetToEmptyState()
+            return
+        }
         
         isLoading = true
         
@@ -159,13 +174,22 @@ class DashboardViewModel: ObservableObject {
             case .success(let caregiver):
                 if let patientID = caregiver.linkedPatientId {
                     self?.loadPatientData(patientID: patientID)
+                } else {
+                    DispatchQueue.main.async {
+                        self?.resetToEmptyState()
+                    }
                 }
+                
             case .failure(let error):
                 print("❌ Failed to load caregiver: \(error)")
-                self?.isLoading = false
+                DispatchQueue.main.async {
+                    self?.resetToEmptyState()
+                }
             }
         }
     }
+    
+    // MARK: - Load Patient Data
     
     private func loadPatientData(patientID: String) {
         cloudKitManager.fetchPatient(byID: patientID) { [weak self] result in
@@ -175,10 +199,17 @@ class DashboardViewModel: ObservableObject {
                     self?.isLoading = false
                     self?.currentPatient = patient
                     self?.patientName = patient.name
+                    self?.hasPatient = true
+                    
+                    // CHECK IF LOCATION EXISTS
+                    self?.hasLocation = patient.hasSafeZone
+                    
+                    print("✅ Patient loaded: \(patient.name)")
+                    print("   Has safe zone: \(patient.hasSafeZone)")
+                    
+                    // Load related data
                     self?.loadMedications(for: patientID)
                     self?.checkSafeZoneStatus(patient: patient)
-                    
-                    // NEW: Fetch latest alerts
                     self?.fetchLatestAlerts(for: patientID)
                     
                 case .failure(let error):
@@ -205,31 +236,48 @@ class DashboardViewModel: ObservableObject {
                     print("✅ Patient loaded successfully on retry")
                     self?.currentPatient = patient
                     self?.patientName = patient.name
+                    self?.hasPatient = true
+                    self?.hasLocation = patient.hasSafeZone
+                    
                     self?.loadMedications(for: patientID)
                     self?.checkSafeZoneStatus(patient: patient)
-                    
-                    // NEW: Fetch latest alerts
                     self?.fetchLatestAlerts(for: patientID)
                     
                 case .failure(let error):
                     print("❌ Failed to load patient even after retry: \(error)")
+                    self?.resetToEmptyState()
                 }
             }
         }
     }
     
+    // MARK: - Load Medications
+    
     private func loadMedications(for patientID: String) {
         cloudKitManager.fetchMedications(for: patientID, activeOnly: true) { [weak self] result in
-            switch result {
-            case .success(let medications):
-                self?.processTodayMedications(medications)
-            case .failure(let error):
-                print("❌ Failed to load medications: \(error)")
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let medications):
+                    print("✅ Loaded \(medications.count) medications")
+                    
+                    // CHECK IF MEDICATION EXISTS
+                    self?.hasMedication = !medications.isEmpty
+                    
+                    // Process today's medications
+                    self?.processTodayMedications(medications)
+                    
+                case .failure(let error):
+                    print("❌ Failed to load medications: \(error)")
+                    self?.hasMedication = false
+                    self?.todayMedications = []
+                }
             }
         }
     }
     
     private func processTodayMedications(_ medications: [Medication]) {
+        // Filter medications that have doses scheduled for today
+        // For now, using mock data - replace with actual dose log checking
         let todayMeds: [TodayMedication] = [
             TodayMedication(
                 name: "Panadol",
@@ -247,28 +295,30 @@ class DashboardViewModel: ObservableObject {
             )
         ]
         
-        DispatchQueue.main.async {
-            self.todayMedications = todayMeds
-        }
+        // Only show if there are today's medications
+        self.todayMedications = todayMeds
     }
     
-    // MARK: - NEW: Fetch Alerts from CloudKit
+    // MARK: - Fetch Latest Alerts
     
     func fetchLatestAlerts(for patientID: String) {
         print("🔍 Fetching latest alerts for patient: \(patientID)")
         
-        // Use existing CloudKitManager method
         cloudKitManager.fetchAlerts(for: patientID, unreadOnly: false) { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let alerts):
                     print("✅ Fetched \(alerts.count) alerts from CloudKit")
                     
-                    // Store recent alerts (last 10)
-                    self?.recentAlerts = Array(alerts.prefix(10))
+                    // Sort by timestamp (most recent first)
+                    let sortedAlerts = alerts.sorted { $0.timestamp > $1.timestamp }
+                    self?.recentAlerts = sortedAlerts
+                    
+                    // Check if there are new unread alerts
+                    self?.checkForNewAlerts()
                     
                     // Update dashboard based on latest alert
-                    if let latestAlert = alerts.first {
+                    if let latestAlert = sortedAlerts.first {
                         self?.updateDashboardFromAlert(latestAlert)
                     }
                     
@@ -276,9 +326,40 @@ class DashboardViewModel: ObservableObject {
                     
                 case .failure(let error):
                     print("❌ Failed to fetch alerts: \(error.localizedDescription)")
+                    self?.recentAlerts = []
+                    self?.hasUnreadAlerts = false
                 }
             }
         }
+    }
+    
+    // MARK: - Check for New Alerts
+    
+    private func checkForNewAlerts() {
+        guard let lastRead = lastReadAlertsTimestamp else {
+            // First time - if there are alerts, mark as unread
+            hasUnreadAlerts = !recentAlerts.isEmpty
+            if hasUnreadAlerts {
+                print("🔴 \(recentAlerts.count) unread alerts (first load)")
+            }
+            return
+        }
+        
+        // Check if there are any alerts newer than last read time
+        let newAlerts = recentAlerts.filter { $0.timestamp > lastRead }
+        hasUnreadAlerts = !newAlerts.isEmpty
+        
+        if hasUnreadAlerts {
+            print("🔴 \(newAlerts.count) new unread alerts")
+        }
+    }
+    
+    // MARK: - Mark Alerts as Read
+    
+    func markAlertsAsRead() {
+        lastReadAlertsTimestamp = Date()
+        hasUnreadAlerts = false
+        print("✅ Alerts marked as read at \(Date())")
     }
     
     // MARK: - Update Dashboard from Alert
@@ -330,19 +411,20 @@ class DashboardViewModel: ObservableObject {
         
         isLoading = true
         
-        // Use async wrapper for CloudKit call
+        // Reload patient data to check if location/medication added
         await withCheckedContinuation { continuation in
-            cloudKitManager.fetchAlerts(for: patientID, unreadOnly: false) { [weak self] result in
+            cloudKitManager.fetchPatient(byID: patientID) { [weak self] result in
                 DispatchQueue.main.async {
                     switch result {
-                    case .success(let alerts):
-                        self?.recentAlerts = Array(alerts.prefix(10))
+                    case .success(let patient):
+                        self?.currentPatient = patient
+                        self?.hasLocation = patient.hasSafeZone
                         
-                        if let latestAlert = alerts.first {
-                            self?.updateDashboardFromAlert(latestAlert)
-                        }
+                        // Reload medications
+                        self?.loadMedications(for: patientID)
                         
-                        self?.lastUpdateTime = Date()
+                        // Fetch alerts
+                        self?.fetchLatestAlerts(for: patientID)
                         
                     case .failure(let error):
                         print("❌ Refresh failed: \(error)")
@@ -403,6 +485,21 @@ class DashboardViewModel: ObservableObject {
         if let patientID = currentPatient?.id {
             fetchLatestAlerts(for: patientID)
         }
+    }
+    
+    // MARK: - Reset to Empty State
+    
+    private func resetToEmptyState() {
+        isLoading = false
+        hasPatient = false
+        hasLocation = false
+        hasMedication = false
+        hasUnreadAlerts = false
+        currentPatient = nil
+        patientName = ""
+        recentAlerts = []
+        todayMedications = []
+        print("🔄 Dashboard reset to empty state")
     }
     
     // MARK: - Demo State Controls (for testing 3 states)
