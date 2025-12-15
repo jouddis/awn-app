@@ -5,17 +5,13 @@
 //  Created by Joud Almashgari on 01/12/2025.
 //
 
-//import SwiftUI
 //
-//@main
-//struct awn_appApp: App {
-//    var body: some Scene {
-//        WindowGroup {
-//            ContentView()
-//        }
-//    }
-//}
-//  Main app entry point
+//  awn_appApp.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 01/12/2025.
+//
+//  Main app entry point with animated splash screen
 //
 
 import SwiftUI
@@ -25,11 +21,30 @@ import CloudKit
 struct AwnApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authViewModel = AuthenticationViewModel()
+    @State private var showSplash = true  // ← Added for splash screen
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(authViewModel)
+            ZStack {
+                // Main app content
+                ContentView()
+                    .environmentObject(authViewModel)
+                
+                // Animated splash screen overlay
+                if showSplash {
+                    SplashScreenView()
+                        .transition(.opacity)
+                        .zIndex(999)  // Keep splash on top
+                }
+            }
+            .onAppear {
+                // Hide splash after 2.5 seconds with fade animation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation(.easeOut(duration: 0.8)) {
+                        showSplash = false
+                    }
+                }
+            }
         }
     }
 }
@@ -56,16 +71,18 @@ struct ContentView: View {
 struct LoadingView: View {
     var body: some View {
         ZStack {
-            Color(.systemBackground)
+            Color.black  // Match splash screen background
                 .ignoresSafeArea()
             
             VStack(spacing: 20) {
                 ProgressView()
                     .scaleEffect(1.5)
+                    .tint(.white)
                 
-                Text("Awn")
+                Text("Aoun")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                    .foregroundColor(.white)
             }
         }
     }
@@ -138,7 +155,7 @@ struct CaregiverFlowView: View {
                     // Patient exists
                     self.hasPatient = true
                 case .failure(let error):
-                    // Patient not found (deleted or error)
+                    // Patient record not found (deleted or error)
                     print("⚠️ Patient record not found: \(error)")
                     self.hasPatient = false
                 }
