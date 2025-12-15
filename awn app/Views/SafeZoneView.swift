@@ -235,18 +235,18 @@ struct PickLocationStateView: View {
                     ZStack {
                         // Radius circle
                         Circle()
-                            .fill(Color.blue.opacity(0.1))
+                            .fill(Color(hex:"6C7CD1").opacity(56/100))
                             .frame(width: viewModel.circleSize, height: viewModel.circleSize)
                             .overlay(
                                 Circle()
-                                    .stroke(Color.blue, lineWidth: 2)
+                                    .stroke(Color(hex:"6C7CD1"), lineWidth: 2)
                             )
                         
                         // Patient pin
                         VStack(spacing: 0) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.blue)
+                                    .fill(Color(hex:"6C7CD1"))
                                     .frame(width: 50, height: 50)
                                 
                                 Text(String(viewModel.patientName.prefix(1)).uppercased())
@@ -256,7 +256,7 @@ struct PickLocationStateView: View {
                             
                             // Pin point
                             Triangle()
-                                .fill(Color.blue)
+                                .fill(Color(hex:"6C7CD1"))
                                 .frame(width: 20, height: 12)
                                 .offset(y: -6)
                         }
@@ -271,31 +271,7 @@ struct PickLocationStateView: View {
                 
                 BottomControlsView(viewModel: viewModel)
             }
-            
-            // Checkmark button (top right)
-            VStack {
-                HStack {
-                    Spacer()
-                    
-                    Button(action: {
-                        viewModel.confirmLocation()
-                    }) {
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(.blue)
-                            )
-                            .shadow(radius: 4)
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.top, 80)
-                }
-                
-                Spacer()
-            }
+        
         }
     }
 }
@@ -312,6 +288,23 @@ struct BottomControlsView: View {
                     .foregroundColor(.white)
                 
                 Spacer()
+                Button(action: {
+                    viewModel.confirmLocation()
+                }) {
+                    Circle()
+                        .fill(Color.black)
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                        )
+                        .shadow(radius: 4)
+                }
+                .glassEffect()
+                .padding(.trailing, 5)
+//                .padding(.top, 80)
+      
             }
             .padding(.horizontal, 24)
             .padding(.top, 20)
@@ -332,7 +325,7 @@ struct BottomControlsView: View {
                 
                 // Radius slider
                 Slider(value: $viewModel.radius, in: 50...2000, step: 50)
-                    .accentColor(.blue)
+                    .accentColor(Color(hex:"6C7CD1"))
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 20)
@@ -351,33 +344,40 @@ struct NamingZoneStateView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Map preview (small)
-            Map(coordinateRegion: .constant(viewModel.region),
-                interactionModes: [],
-                showsUserLocation: false)
-                .frame(height: 200)
-                .overlay(
-                    // Address text overlay
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .foregroundColor(.blue)
-                            Text(viewModel.selectedAddress)
-                                .font(.system(size: 14))
-                                .foregroundColor(.white)
-                            Spacer()
-                        }
-                        .padding(12)
-                        .background(Color.black.opacity(0.7))
-                        .cornerRadius(8)
-                        .padding(16)
-                    }
-                )
-                .cornerRadius(16)
-                .padding(16)
             
-            Spacer()
+            // Map container with rounded corners
+            ZStack(alignment: .bottom) {
+                // Background rounded rectangle
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(hex: "242324"))
+                    .frame(width: 354, height: 197)
+                
+                // Map (clipped to rounded corners)
+                Map(coordinateRegion: .constant(viewModel.region),
+                    interactionModes: [],
+                    showsUserLocation: false)
+                    .frame(width: 339, height: 138)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .offset(y: -50) // Move map up to show address below
+                
+                // Address overlay at the bottom
+                HStack {
+                    Image(systemName: "location.fill")
+                        .foregroundColor(Color(hex: "6C7CD1"))
+                    Text(viewModel.selectedAddress)
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                .padding(12)
+                .background(Color(hex: "242324"))
+                .cornerRadius(8)
+                .frame(width: 339)
+                .padding(.bottom, 3)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            
             
             // Location Name input
             VStack(alignment: .leading, spacing: 12) {
@@ -393,11 +393,12 @@ struct NamingZoneStateView: View {
                     .cornerRadius(12)
             }
             .padding(.horizontal, 24)
+            .padding(.top, 20)
             
             // Notification toggle
             HStack {
                 Text("Notify me if \(viewModel.patientName) out of the safe side")
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundColor(.white)
                 
                 Spacer()
@@ -420,9 +421,9 @@ struct NamingZoneStateView: View {
                 Text("Save")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
+                    .frame(width: 236, height: 30)
                     .padding(.vertical, 16)
-                    .background(viewModel.zoneName.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                    .background(viewModel.zoneName.isEmpty ? Color.gray.opacity(0.3) : Color(hex: "6C7CD1"))
                     .cornerRadius(12)
             }
             .disabled(viewModel.zoneName.isEmpty)
@@ -440,70 +441,75 @@ struct ViewingZoneStateView: View {
     var body: some View {
         VStack(spacing: 20) {
             
-            // Map preview (large)
-            Map(
-                coordinateRegion: .constant(viewModel.region),
-                interactionModes: [],
-                showsUserLocation: false,
-                annotationItems: [AnnotationItem(coordinate: viewModel.region.center)]
-            ) { item in
-                MapAnnotation(coordinate: item.coordinate) {
-                    // Patient pin with radius circle
-                    ZStack {
-                        // Radius circle
-                        Circle()
-                            .fill(Color.blue.opacity(0.1))
-                            .frame(width: viewModel.circleSize, height: viewModel.circleSize)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.blue, lineWidth: 2)
-                            )
-                        
-                        // Patient pin
-                        VStack(spacing: 0) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue)
-                                    .frame(width: 50, height: 50)
-                                
-                                Text(String(viewModel.patientName.prefix(1)).uppercased())
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.white)
-                            }
-                            
-                            // Pin point
-                            Triangle()
-                                .fill(Color.blue)
-                                .frame(width: 20, height: 12)
-                                .offset(y: -6)
-                        }
-                    }
-                }
-            }
-            .frame(height: 300)
-            .cornerRadius(16)
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
+//            // Map preview (large)
+//            Map(
+//                coordinateRegion: .constant(viewModel.region),
+//                interactionModes: [],
+//                showsUserLocation: false,
+//                annotationItems: [AnnotationItem(coordinate: viewModel.region.center)]
+//            ) { item in
+//                MapAnnotation(coordinate: item.coordinate) {
+//                    // Patient pin with radius circle
+//                    ZStack {
+//                        // Radius circle
+//                        Circle()
+//                            .fill(Color(hex:"6C7CD1").opacity(0.1))
+//                            .frame(width: viewModel.circleSize, height: viewModel.circleSize)
+//                            .overlay(
+//                                Circle()
+//                                    .stroke(Color(hex:"6C7CD1"), lineWidth: 2)
+//                            )
+//                        
+//                        // Patient pin
+//                        VStack(spacing: 0) {
+//                            ZStack {
+//                                Circle()
+//                                    .fill(Color(hex:"6C7CD1"))
+//                                    .frame(width: 50, height: 50)
+//                                
+//                                Text(String(viewModel.patientName.prefix(1)).uppercased())
+//                                    .font(.system(size: 24, weight: .bold))
+//                                    .foregroundColor(.white)
+//                            }
+//                            
+//                            // Pin point
+//                            Triangle()
+//                                .fill(Color(hex:"6C7CD1"))
+//                                .frame(width: 20, height: 12)
+//                                .offset(y: -6)
+//                        }
+//                    }
+//                }
+//            }
+//            .frame(height: 300)
+//            .cornerRadius(16)
+//            .padding(.horizontal, 16)
+//            .padding(.top, 8)
             
             // Title and Action Buttons
             HStack {
-                Text("\(viewModel.patientName) safe locations")
-                    .font(.system(size: 24, weight: .semibold))
+                Text("\(viewModel.patientName)'s safe location")
+                    .font(.system(size: 20, weight: .regular))
                     .foregroundColor(.white)
                 
-                Spacer()
+//                Spacer()
                 
                 // Edit Button
                 Button(action: {
                     viewModel.editZone()
                 }) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(Color.gray.opacity(0.3))
-                        .cornerRadius(8)
+                    Circle()
+                        .fill(Color.black)
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Image(systemName: "pencil")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(Color(hex:"6C7CD1"))
+                        )
+                        .shadow(radius: 4)
                 }
+                .glassEffect()
+                .padding(.trailing, 5)
                 
                 // Delete Button
                 Button(action: {
@@ -516,7 +522,7 @@ struct ViewingZoneStateView: View {
                         .background(Color.red)
                         .cornerRadius(8)
                 }
-            }
+            }.padding(.top, 10)
             .padding(.horizontal, 24)
             
             // Zone card
@@ -524,12 +530,12 @@ struct ViewingZoneStateView: View {
                 // Icon
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.2))
+                        .fill(Color(hex:"6C7CD1").opacity(0.2))
                         .frame(width: 50, height: 50)
                     
                     Image(systemName: "house.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(.blue)
+                        .foregroundColor(Color(hex:"6C7CD1"))
                 }
                 
                 // Name & Radius
@@ -580,17 +586,21 @@ struct SuccessAlertView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
                     .padding(.top, 30)
+                Divider()
                 
                 Button(action: onClose) {
                     Text("Close")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(Color(hex:"6C7CD1"))
                         .padding(.bottom, 20)
                 }
             }
-            .background(Color(white: 0.15))
+            .background(.black)
             .cornerRadius(16)
             .padding(.horizontal, 40)
+            .shadow(color: Color.white.opacity(0.1), radius: 5, x: 0, y: -2)
+                .shadow(color: Color.black.opacity(10), radius: 0.2, x: 0.4, y: 0.5)
+                .shadow(color: Color.white.opacity(5), radius: 0.2, x: -0.5, y: -0.5)
         }
     }
 }

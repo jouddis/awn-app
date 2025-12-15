@@ -79,16 +79,7 @@ struct AuthenticationView: View {
                 Spacer()
                 
                 
-                // App logo/title
-//                VStack(spacing: 12) {
-//                    Text("Awn")
-//                        .font(.system(size: 48, weight: .bold))
-//                        .foregroundColor(.white)
-//
-//                    Text("Caring for those who matter most")
-//                        .font(.system(size: 16))
-//                        .foregroundColor(.white.opacity(0.7))
-//                }
+
                 
                 Spacer()
                 Text("Please sign in with Apple")
