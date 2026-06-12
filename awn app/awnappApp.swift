@@ -5,14 +5,6 @@
 //  Created by Joud Almashgari on 01/12/2025.
 //
 
-//
-//  awn_appApp.swift
-//  awn app
-//
-//  Created by Joud Almashgari on 01/12/2025.
-//
-//  Main app entry point with animated splash screen
-//
 
 import SwiftUI
 import CloudKit
