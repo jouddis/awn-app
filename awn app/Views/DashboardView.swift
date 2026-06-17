@@ -4,12 +4,9 @@
 //
 //  Created by Joud Almashgari on 09/12/2025.
 //
-//
-//  DashboardView.swift
-//  awn app
-//
 //  Updated with beautiful HomeView UI design
 //
+
 
 import SwiftUI
 
@@ -19,6 +16,8 @@ struct DashboardView: View {
     @Environment(\.scenePhase) var scenePhase
     @State private var showNotificationsPanel = false
     
+    @StateObject private var locationRequestVM = LocationRequestViewModel()
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -27,10 +26,11 @@ struct DashboardView: View {
                 VStack(spacing: 0) {
                     // Header
                     DashboardHeader(
-                        caregiverName: authViewModel.currentUser?.fullName ?? "Caregiver",
+                        caregiverName: authViewModel.currentUser?.fullName ?? (DemoSession.shared.isActive ? "Joud (Demo)" : "Caregiver"),
                         patientName: viewModel.patientName,
                         lastUpdate: viewModel.lastUpdateTime,
                         hasUnreadAlerts: viewModel.hasUnreadAlerts,
+                        isDemoMode: viewModel.isDemoMode,
                         onNotificationTap: {
                             showNotificationsPanel = true
                             viewModel.markAlertsAsRead()
@@ -46,9 +46,14 @@ struct DashboardView: View {
                                 EmptyStateView()
                                 
                             } else {
+                                // 1.5 READINESS CARD - always shown when not demo
+                                if !viewModel.isDemoMode {
+                                    MonitoringSetupCard(readiness: viewModel.readiness)
+                                }
+
                                 // 2. LOCATION ADDED - Show status cards
                                 if viewModel.hasLocation {
-                                    StatusSection(viewModel: viewModel)
+                                    StatusSection(viewModel: viewModel, locationRequestVM: locationRequestVM)
                                 }
                                 
                                 // 3. MEDICATION ADDED - Show medicine cards (only today's meds)
@@ -69,15 +74,25 @@ struct DashboardView: View {
             }
             .preferredColorScheme(.dark)
             .onAppear {
-                viewModel.loadDashboardData()
-            }
-            .onChange(of: scenePhase) { newPhase in
-                if newPhase == .active {
-                    if let patientID = viewModel.currentPatient?.id {
-                        viewModel.fetchLatestAlerts(for: patientID)
+                if DemoSession.shared.isActive {
+                    viewModel.loadDemoData()
+                } else {
+                    viewModel.loadDashboardData()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        if let p = viewModel.currentPatient {
+                            locationRequestVM.setup(patient: p, caregiver: authViewModel.currentUser)
+                        }
                     }
                 }
             }
+            
+//            .onChange(of: scenePhase) { newPhase in
+//                if newPhase == .active {
+//                    if let patientID = viewModel.currentPatient?.id {
+//                        viewModel.fetchLatestAlerts(for: patientID)
+//                    }
+//                }
+//            }
             .navigationBarHidden(true)
             .sheet(isPresented: $showNotificationsPanel) {
                 NotificationsPanel(viewModel: viewModel)
@@ -173,6 +188,7 @@ struct DashboardHeader: View {
     let patientName: String
     let lastUpdate: Date
     let hasUnreadAlerts: Bool
+    var isDemoMode: Bool = false
     let onNotificationTap: () -> Void
     @State private var showDebugSettings = false
     
@@ -189,9 +205,14 @@ struct DashboardHeader: View {
                 .shadow(color: Color.white.opacity(0.1), radius: 5)
             
             VStack(alignment: .leading, spacing: 0) {
-                Text("Welcome back")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
+                HStack(spacing: 8) {
+                    Text("Welcome back")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(.white)
+                    if isDemoMode {
+                        DemoBadge()
+                    }
+                }
                 
                 Text("Updated: \(lastUpdate, style: .relative) ago")
                     .font(.system(size: 12))
@@ -292,12 +313,16 @@ struct NotificationsPanel: View {
 
 struct StatusSection: View {
     @ObservedObject var viewModel: DashboardViewModel
-    
+    @ObservedObject var locationRequestVM: LocationRequestViewModel
+
     var body: some View {
         VStack(spacing: 15) {
+
+            LocationRequestCard(viewModel: locationRequestVM)
+            
             // Watch Status Card (Beautiful Design from HomeView)
             WatchStatusCard(viewModel: viewModel)
-            
+
             // Fall Detection Card
             FallDetectionStatusCard(viewModel: viewModel)
         }
@@ -325,7 +350,7 @@ struct WatchStatusCard: View {
         case .outside:
             return "Outside"
         case .unknown:
-            return "Unknown"
+            return "Waiting for location…"
         }
     }
     

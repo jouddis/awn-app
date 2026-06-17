@@ -14,9 +14,9 @@ import Combine
 class CloudKitManager {
     static let shared = CloudKitManager()
     
-    private let container: CKContainer
-    private let privateDatabase: CKDatabase
-    private let publicDatabase: CKDatabase
+    internal let container: CKContainer
+    internal let privateDatabase: CKDatabase
+    internal let publicDatabase: CKDatabase
     
     private init() {
         self.container = Constants.CloudKit.container
@@ -614,4 +614,3 @@ class CloudKitManager {
         }
     }
 }
-

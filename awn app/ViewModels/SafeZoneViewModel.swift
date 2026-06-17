@@ -7,6 +7,7 @@
 //  Complete view model for safe zone management
 //
 
+
 import Foundation
 import MapKit
 import CoreLocation
@@ -39,6 +40,10 @@ class SafeZoneViewModel: NSObject, ObservableObject {
     @Published var showDeleteAlert: Bool = false // ✨ NEW: For delete confirmation
     
     @Published var patientName: String = "Norah"
+    private var currentPatient: Patient?
+
+    /// Exposed for MonitoringRequirementsNote in SafeZoneView
+    var currentPatientWatchPaired: Bool { currentPatient?.isWatchPaired ?? false }
     
     // MARK: - Private Properties
     
@@ -46,7 +51,6 @@ class SafeZoneViewModel: NSObject, ObservableObject {
     private let authService = AuthenticationService.shared
     private let locationManager = CLLocationManager()
     
-    private var currentPatient: Patient?
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Computed Properties
@@ -316,4 +320,3 @@ extension SafeZoneViewModel: CLLocationManagerDelegate {
         }
     }
 }
-

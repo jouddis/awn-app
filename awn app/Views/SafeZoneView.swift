@@ -4,6 +4,13 @@
 //
 //  Created by Joud Almashgari on 09/12/2025.
 //
+//
+//
+//  SafeZoneView.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 09/12/2025.
+//
 import SwiftUI
 import MapKit
 
@@ -62,9 +69,14 @@ struct SafeZoneView: View {
     private var contentView: some View {
         switch viewModel.currentState {
         case .noZone:
-            NoZoneStateView(onAddLocation: {
-                viewModel.startCreatingZone()
-            })
+            VStack(spacing: 0) {
+                MonitoringRequirementsNote(watchPaired: viewModel.currentPatientWatchPaired, hasLocation: false)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                NoZoneStateView(onAddLocation: {
+                    viewModel.startCreatingZone()
+                })
+            }
             
         case .pickingLocation:
             PickLocationStateView(viewModel: viewModel)
@@ -73,7 +85,12 @@ struct SafeZoneView: View {
             NamingZoneStateView(viewModel: viewModel)
             
         case .viewing:
-            ViewingZoneStateView(viewModel: viewModel)
+            VStack(spacing: 0) {
+                MonitoringRequirementsNote(watchPaired: viewModel.currentPatientWatchPaired, hasLocation: true)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                ViewingZoneStateView(viewModel: viewModel)
+            }
         }
     }
 }
@@ -459,19 +476,19 @@ struct ViewingZoneStateView: View {
 //                                Circle()
 //                                    .stroke(Color(hex:"6C7CD1"), lineWidth: 2)
 //                            )
-//                        
+//
 //                        // Patient pin
 //                        VStack(spacing: 0) {
 //                            ZStack {
 //                                Circle()
 //                                    .fill(Color(hex:"6C7CD1"))
 //                                    .frame(width: 50, height: 50)
-//                                
+//
 //                                Text(String(viewModel.patientName.prefix(1)).uppercased())
 //                                    .font(.system(size: 24, weight: .bold))
 //                                    .foregroundColor(.white)
 //                            }
-//                            
+//
 //                            // Pin point
 //                            Triangle()
 //                                .fill(Color(hex:"6C7CD1"))
@@ -725,4 +742,61 @@ struct Triangle: Shape {
 
 #Preview {
     SafeZoneView()
+}
+
+
+// MARK: - Monitoring Requirements Note
+
+struct MonitoringRequirementsNote: View {
+    let watchPaired: Bool
+    let hasLocation: Bool
+
+    private var allGood: Bool { watchPaired && hasLocation }
+
+    var body: some View {
+        if allGood { return AnyView(EmptyView()) }
+        return AnyView(
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 14))
+                    Text("Monitoring Setup Required")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    RequirementRow(done: watchPaired, label: "Watch paired via Family Setup")
+                    RequirementRow(done: hasLocation, label: "Safe zone saved")
+                }
+
+                Text("You can save a safe zone now. Monitoring activates once all steps are complete.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.45))
+                    .lineSpacing(2)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.orange.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+            )
+        )
+    }
+}
+
+struct RequirementRow: View {
+    let done: Bool
+    let label: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 13))
+                .foregroundColor(done ? .green : .white.opacity(0.25))
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(done ? .white.opacity(0.75) : .white.opacity(0.4))
+        }
+    }
 }

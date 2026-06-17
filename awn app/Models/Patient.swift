@@ -6,6 +6,14 @@
 //
 //  Patient model with single safe zone (geofence)
 //
+//
+//  Patient.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 09/12/2025.
+//
+//  Patient model with single safe zone (geofence)
+//
 
 import Foundation
 import CloudKit
@@ -30,6 +38,11 @@ struct Patient: Identifiable, Codable {
     var safeZoneCreatedAt: Date?
     var safeZoneUpdatedAt: Date?
     
+    // Last Known Location (updated by Watch)
+    var lastKnownLatitude: Double?
+    var lastKnownLongitude: Double?
+    var lastLocationTimestamp: Date?
+
     var createdAt: Date
     var updatedAt: Date
     
@@ -49,6 +62,9 @@ struct Patient: Identifiable, Codable {
          safeZoneIsActive: Bool = false,
          safeZoneCreatedAt: Date? = nil,
          safeZoneUpdatedAt: Date? = nil,
+         lastKnownLatitude: Double? = nil,
+         lastKnownLongitude: Double? = nil,
+         lastLocationTimestamp: Date? = nil,
          createdAt: Date = Date(),
          updatedAt: Date = Date()) {
         self.id = id
@@ -65,6 +81,9 @@ struct Patient: Identifiable, Codable {
         self.safeZoneIsActive = safeZoneIsActive
         self.safeZoneCreatedAt = safeZoneCreatedAt
         self.safeZoneUpdatedAt = safeZoneUpdatedAt
+        self.lastKnownLatitude = lastKnownLatitude
+        self.lastKnownLongitude = lastKnownLongitude
+        self.lastLocationTimestamp = lastLocationTimestamp
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -88,6 +107,21 @@ struct Patient: Identifiable, Codable {
     
     var isWatchPaired: Bool {
         return watchDeviceID != nil
+    }
+
+    var hasLastLocation: Bool {
+        return lastKnownLatitude != nil && lastKnownLongitude != nil
+    }
+
+    var lastSeenText: String {
+        guard let ts = lastLocationTimestamp else { return "No location yet" }
+        let mins = Int(-ts.timeIntervalSinceNow / 60)
+        switch mins {
+        case 0..<2:   return "Just now"
+        case 2..<60:  return "\(mins)m ago"
+        case 60..<1440: return "\(mins/60)h ago"
+        default:      return "\(mins/1440)d ago"
+        }
     }
     
     // MARK: - CloudKit Conversion
@@ -148,7 +182,17 @@ struct Patient: Identifiable, Codable {
         
         record["createdAt"] = createdAt as CKRecordValue
         record["updatedAt"] = updatedAt as CKRecordValue
-        
+
+        if let lat = lastKnownLatitude {
+            record["lastKnownLatitude"] = lat as CKRecordValue
+        }
+        if let lon = lastKnownLongitude {
+            record["lastKnownLongitude"] = lon as CKRecordValue
+        }
+        if let ts = lastLocationTimestamp {
+            record["lastLocationTimestamp"] = ts as CKRecordValue
+        }
+
         return record
     }
     
@@ -182,7 +226,11 @@ struct Patient: Identifiable, Codable {
         
         self.safeZoneCreatedAt = record["safeZoneCreatedAt"] as? Date
         self.safeZoneUpdatedAt = record["safeZoneUpdatedAt"] as? Date
-        
+
+        self.lastKnownLatitude = record["lastKnownLatitude"] as? Double
+        self.lastKnownLongitude = record["lastKnownLongitude"] as? Double
+        self.lastLocationTimestamp = record["lastLocationTimestamp"] as? Date
+
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

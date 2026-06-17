@@ -7,6 +7,15 @@
 //
 //
 //
+//
+//  PatientOnboardingView.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 09/12/2025.
+//
+//
+//
+//
 import SwiftUI
 
 // MARK: - Color Extension for Hex
@@ -341,13 +350,21 @@ struct WatchPairingInfoView: View {
                 }
                 .padding(.horizontal, 30)
                 
-                // I'll do this later - Opens the sheet
-                Button(action: {
-                    showFamilySharingSheet = true
-                }) {
-                    Text("I'll do this later")
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
+                // I'll do this later - can still proceed to WatchPairingVisual
+                HStack(spacing: 16) {
+                    Button(action: { showFamilySharingSheet = true }) {
+                        Text("How to set up")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "6C7CD1"))
+                            .underline()
+                    }
+                    Text("·")
+                        .foregroundColor(.white.opacity(0.2))
+                    Button(action: { viewModel.currentStep = .watchPairingVisual }) {
+                        Text("I'll do this later")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                    }
                 }
                 .padding(.top, 12)
                 .padding(.bottom, 33)

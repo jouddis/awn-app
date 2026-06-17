@@ -5,6 +5,15 @@
 //  Created by Joud Almashgari on 09/12/2025.
 //
 //  ViewModel for dashboard with 3 states support
+//  Updated with dynamic UI states and notification panel logic
+//
+//
+//  DashboardViewModel.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 09/12/2025.
+//
+//  ViewModel for dashboard with 3 states support
 //
 //
 //  DashboardViewModel.swift
@@ -110,6 +119,8 @@ class DashboardViewModel: ObservableObject {
     @Published var hasMedication: Bool = false
     @Published var hasUnreadAlerts: Bool = false
     @Published var hasPatient: Bool = false
+    @Published var isDemoMode: Bool = false
+    @Published var readiness: MonitoringReadiness = .empty
     
     // MARK: - Private Properties
     
@@ -120,7 +131,7 @@ class DashboardViewModel: ObservableObject {
     private var lastReadAlertsTimestamp: Date?
     
     // Current patient - internal for access by View
-    internal var currentPatient: Patient?
+    @Published internal var currentPatient: Patient?
     
     // MARK: - Initialization
     
@@ -159,6 +170,26 @@ class DashboardViewModel: ObservableObject {
     
     // MARK: - Load Dashboard Data
     
+    // MARK: - Demo Mode
+
+    func loadDemoData() {
+        isDemoMode = true
+        let p = DemoDataProvider.patient
+        currentPatient = p
+        patientName = p.name
+        hasPatient = true
+        hasLocation = true
+        hasMedication = true
+        safeZoneStatus = .inside
+        watchStatus = .connected
+        healthStatus = .normal
+        todayMedications = DemoDataProvider.todayMedications
+        recentAlerts = DemoDataProvider.alerts
+        hasUnreadAlerts = DemoDataProvider.alerts.contains { !$0.isRead }
+        lastUpdateTime = Date()
+        readiness = .fullDemo
+    }
+
     func loadDashboardData() {
         guard let currentUser = authService.currentUser else {
             print("❌ No authenticated user")

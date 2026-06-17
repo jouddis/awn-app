@@ -6,6 +6,24 @@
 //
 //  Main tab container - switches between Home/Location/Medications
 //
+//
+//
+//  Untitled.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 09/12/2025.
+//
+//  Main tab container - switches between Home/Location/Medications
+//
+//
+//
+//  Untitled.swift
+//  awn app
+//
+//  Created by Joud Almashgari on 09/12/2025.
+//
+//  Main tab container - switches between Home/Location/Medications
+//
 
 import SwiftUI
 import Combine
@@ -31,7 +49,8 @@ struct MainTabView: View {
                             SafeZoneView()
                             
                         case .medications:
-                            MedicationsPlaceholderView()
+                            MedicationListView()
+                                .environmentObject(authViewModel)
                         }
                     }
                     
@@ -123,13 +142,8 @@ struct MainTabButton: View {
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(isSelected ? .black : Color.clear).cornerRadius(44)
-                
-                
-                
-                
             }
         }
-
     }
 }
 
@@ -139,19 +153,15 @@ struct MedicationsPlaceholderView: View {
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            
             Image(systemName: "pills.fill")
                 .font(.system(size: 60))
                 .foregroundColor(.blue)
-            
             Text("Medications")
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundColor(.white)
-            
             Text("Coming Soon")
                 .font(.system(size: 18))
                 .foregroundColor(.gray)
-            
             Spacer()
         }
     }

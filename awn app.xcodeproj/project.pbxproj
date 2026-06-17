@@ -47,6 +47,8 @@
 				Models/AlertEvent.swift,
 				Models/AppUser.swift,
 				Models/Caregiver.swift,
+				Models/LocationSharingRequest.swift,
+				Models/MonitoringReadiness.swift,
 				Models/Patient.swift,
 				Utilities/Constants.swift,
 			);
